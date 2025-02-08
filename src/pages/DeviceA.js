@@ -1,28 +1,50 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom"; // Redirect if not logged in
 import "./DeviceA.css"; // Import external CSS
 
-const DeviceA = ({ adminToken, deviceId }) => {
+const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const [devices, setDevices] = useState([]);
   const [token, setToken] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!adminToken || !deviceId) return;
+    // Retrieve admin token from localStorage if missing
+    if (!adminToken) {
+      const storedToken = localStorage.getItem("adminToken");
+      if (storedToken) {
+        setAdminToken(storedToken);
+      } else {
+        alert("Unauthorized access. Redirecting to login.");
+        navigate("/admin-login");
+        return;
+      }
+    }
 
-    axios.get(`https://googl-backend.onrender.com/device-a/list-devices?deviceId=${deviceId}`, { 
-      headers: { Authorization: `Bearer ${adminToken}` } 
-    })
-      .then(res => setDevices(res.data.devices))
-      .catch(err => console.error("Error fetching device list:", err));
+    if (!deviceId) {
+      console.error("Device ID is missing!");
+      return;
+    }
 
-    axios.get(`https://googl-backend.onrender.com/device-a/get-token?deviceId=${deviceId}`, { 
-      headers: { Authorization: `Bearer ${adminToken}` } 
-    })
-      .then(res => setToken(res.data.googleToken))
-      .catch(err => console.error("Error fetching Google OAuth token:", err));
-  }, [adminToken, deviceId]);
+    // Fetch linked devices
+    axios
+      .get(`https://googl-backend.onrender.com/device-a/list-devices?deviceId=${deviceId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      })
+      .then((res) => setDevices(res.data.devices))
+      .catch((err) => console.error("Error fetching device list:", err.response?.data || err.message));
 
-  const loginAsDevice = async (email) => {
+    // Fetch stored Google OAuth token
+    axios
+      .get(`https://googl-backend.onrender.com/device-a/get-token?deviceId=${deviceId}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      })
+      .then((res) => setToken(res.data.googleToken))
+      .catch((err) => console.error("Error fetching Google OAuth token:", err.response?.data || err.message));
+  }, [adminToken, deviceId, setAdminToken, navigate]);
+
+  // Login as a specific device user
+  const loginAsDevice = (email) => {
     window.location.href = `https://googl-backend.onrender.com/login?email=${email}&deviceId=${deviceId}`;
   };
 
@@ -32,7 +54,7 @@ const DeviceA = ({ adminToken, deviceId }) => {
 
       <div className="token-container">
         <h3>Stored Google OAuth Token</h3>
-        <textarea value={token} readOnly className="token-box"></textarea>
+        <textarea value={token || "No token available"} readOnly className="token-box"></textarea>
       </div>
 
       <div className="device-list">
@@ -41,7 +63,7 @@ const DeviceA = ({ adminToken, deviceId }) => {
           <p className="no-devices">No linked devices found.</p>
         ) : (
           <ul>
-            {devices.map(device => (
+            {devices.map((device) => (
               <li key={device.email} className="device-item">
                 <span>{device.email}</span>
                 <button className="login-button" onClick={() => loginAsDevice(device.email)}>
