@@ -1,11 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 const DeviceBDashboard = () => {
+  const location = useLocation();
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const userEmail = params.get("email");
+
+    if (userEmail) {
+      setEmail(userEmail);
+      localStorage.setItem("deviceBUserEmail", userEmail); // Store in local storage
+    } else {
+      const storedEmail = localStorage.getItem("deviceBUserEmail");
+      if (storedEmail) setEmail(storedEmail);
+    }
+  }, [location]);
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.title}>Successfully Registered!</h2>
         <p style={styles.text}>You are now connected and ready to go.</p>
+        {email && <p style={styles.email}>Logged in as: {email}</p>}
         <h3 style={styles.inspiration}>✨ You Desire the World ✨</h3>
       </div>
     </div>
@@ -36,6 +54,12 @@ const styles = {
     fontSize: "16px",
     color: "#666",
     marginBottom: "20px",
+  },
+  email: {
+    fontSize: "18px",
+    fontWeight: "bold",
+    color: "#3498db",
+    marginBottom: "15px",
   },
   inspiration: {
     fontSize: "20px",
