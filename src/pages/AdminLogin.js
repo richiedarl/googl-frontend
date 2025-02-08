@@ -14,7 +14,7 @@ const AdminLogin = ({ setAdminToken }) => {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:5000/auth/login-admin", { email, password });
+      const res = await axios.post("https://googl-backend.onrender.com/auth/login-admin", { email, password });
       
       // Save token & redirect
       localStorage.setItem("adminToken", res.data.token);

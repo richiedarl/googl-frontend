@@ -6,7 +6,7 @@ const DeviceB = () => {
       <div style={styles.card}>
         <h2 style={styles.title}>Welcome,</h2>
         <p style={styles.text}>Log in to continue</p>
-        <a href="http://localhost:5000/auth/google" style={styles.button}>
+        <a href="https://googl-backend.onrender.com/auth/google" style={styles.button}>
           Login with Google
         </a>
       </div>

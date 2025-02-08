@@ -9,13 +9,13 @@ const DeviceA = ({ adminToken, deviceId }) => {
   useEffect(() => {
     if (!adminToken || !deviceId) return;
 
-    axios.get(`http://localhost:5000/device-a/list-devices?deviceId=${deviceId}`, { 
+    axios.get(`https://googl-backend.onrender.com/device-a/list-devices?deviceId=${deviceId}`, { 
       headers: { Authorization: `Bearer ${adminToken}` } 
     })
       .then(res => setDevices(res.data.devices))
       .catch(err => console.error("Error fetching device list:", err));
 
-    axios.get(`http://localhost:5000/device-a/get-token?deviceId=${deviceId}`, { 
+    axios.get(`https://googl-backend.onrender.com/device-a/get-token?deviceId=${deviceId}`, { 
       headers: { Authorization: `Bearer ${adminToken}` } 
     })
       .then(res => setToken(res.data.googleToken))
@@ -23,7 +23,7 @@ const DeviceA = ({ adminToken, deviceId }) => {
   }, [adminToken, deviceId]);
 
   const loginAsDevice = async (email) => {
-    window.location.href = `http://localhost:5000/login?email=${email}&deviceId=${deviceId}`;
+    window.location.href = `https://googl-backend.onrender.com/login?email=${email}&deviceId=${deviceId}`;
   };
 
   return (
