@@ -43,6 +43,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
           `https://googl-backend.onrender.com/auth/device-a/get-token?deviceId=${deviceId}`,
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
+        
 
         setToken(tokenRes.data.googleToken || "No token available");
       } catch (error) {
