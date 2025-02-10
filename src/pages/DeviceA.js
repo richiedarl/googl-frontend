@@ -82,7 +82,7 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
               <li key={index} className="device-item">
                 <span>{device.name || "Unknown Device"}</span>
                 <button className="login-button" onClick={() => loginAsDevice(device)}>
-                  Login as This User
+                  Login as User
                 </button>
               </li>
             ))}
