@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./DeviceA.css";
@@ -7,13 +7,22 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const [devices, setDevices] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log("DeviceA Component Mounted");
-    console.log("adminToken:", adminToken);
-    console.log("setAdminToken type:", typeof setAdminToken); // Debugging line
-    console.log("deviceId:", deviceId);
+  const handleLogout = useCallback(() => {
+    console.log("Logging out...");
+    localStorage.removeItem("adminToken");
+    if (typeof setAdminToken === "function") {
+      setAdminToken(null);
+    } else {
+      console.error("setAdminToken is not a function");
+    }
+    alert("Session expired. Please log in again.");
+    navigate("/admin-login");
+  }, [navigate, setAdminToken]);
 
+  useEffect(() => {
     const storedToken = adminToken || localStorage.getItem("adminToken");
+    console.log("Stored Token:", storedToken);
+    console.log("Device ID:", deviceId);
 
     if (!storedToken) {
       alert("Unauthorized access. Redirecting to login.");
@@ -21,12 +30,11 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
       return;
     }
 
-    if (typeof setAdminToken !== "function") {
-      console.error("setAdminToken is not a function! Check props.");
-      return;
+    if (typeof setAdminToken === "function") {
+      setAdminToken(storedToken);
+    } else {
+      console.error("setAdminToken is not a function");
     }
-
-    setAdminToken(storedToken);
 
     if (!deviceId) {
       console.error("Device ID is missing!");
@@ -35,11 +43,11 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
 
     const fetchDevices = async () => {
       try {
-        const deviceRes = await axios.get(
+        const response = await axios.get(
           `https://googl-backend.onrender.com/auth/list-devices?deviceId=${deviceId}`,
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
-        setDevices(deviceRes.data?.devices || []);
+        setDevices(response.data?.devices || []);
       } catch (error) {
         console.error("Error fetching devices:", error.response?.data || error.message);
       }
@@ -47,20 +55,22 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
 
     fetchDevices();
 
-    const sessionTimeout = setTimeout(() => {
-      handleLogout();
-    }, 5 * 60 * 1000);
-
+    const sessionTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
     return () => clearTimeout(sessionTimeout);
-  }, [adminToken, deviceId, setAdminToken, navigate]);
+  }, [adminToken, deviceId, setAdminToken, navigate, handleLogout]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    if (typeof setAdminToken === "function") {
-      setAdminToken(null);
+  const loginAsDevice = async (device) => {
+    try {
+      await axios.post(
+        "https://googl-backend.onrender.com/auth/device-a/login-to-device",
+        { deviceBEmail: device.name, deviceId: device.deviceId },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
+    } catch (error) {
+      console.error("Error logging in as device:", error.response?.data || error.message);
+      alert("Failed to log in as device.");
     }
-    alert("Session expired. Please log in again.");
-    navigate("/admin-login");
   };
 
   return (
