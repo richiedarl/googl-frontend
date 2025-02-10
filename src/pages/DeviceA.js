@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./DeviceA.css";
@@ -6,6 +6,13 @@ import "./DeviceA.css";
 const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const [devices, setDevices] = useState([]);
   const navigate = useNavigate();
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("adminToken");
+    setAdminToken(null);
+    alert("Session expired. Please log in again.");
+    navigate("/admin-login");
+  }, [navigate, setAdminToken]);
 
   useEffect(() => {
     const storedToken = adminToken || localStorage.getItem("adminToken");
@@ -28,7 +35,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
     const fetchDevices = async () => {
       try {
         const deviceRes = await axios.get(
-          `https://googl-backend.onrender.com/auth/list-devices?deviceId=${deviceId}`, // Ensure deviceId is passed
+          `https://googl-backend.onrender.com/auth/list-devices?deviceId=${deviceId}`,
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
         setDevices(deviceRes.data?.devices || []);
@@ -44,13 +51,13 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
     }, 5 * 60 * 1000);
 
     return () => clearTimeout(sessionTimeout);
-  }, [adminToken, deviceId, setAdminToken, navigate]);
+  }, [adminToken, deviceId, setAdminToken, navigate, handleLogout]);
 
   const loginAsDevice = async (device) => {
     try {
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { deviceBEmail: device.name, deviceId: device.deviceId }, // Ensure deviceId is sent
+        { deviceBEmail: device.name, deviceId: device.deviceId },
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
@@ -58,13 +65,6 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
       console.error("Error logging in as device:", err.response?.data || err.message);
       alert("Failed to log in as device.");
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("adminToken");
-    setAdminToken(null);
-    alert("Session expired. Please log in again.");
-    navigate("/admin-login");
   };
 
   return (
