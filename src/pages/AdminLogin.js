@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid"; // Import UUID for unique ID generation
 import "./AdminRegister.css"; // Using the same CSS file
 
 const AdminLogin = ({ setAdminToken }) => {
@@ -12,7 +13,13 @@ const AdminLogin = ({ setAdminToken }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const deviceId = localStorage.getItem("deviceId") || "unknown-device"; // Get or set default
+    // Check if deviceId exists, else generate a new one
+    let deviceId = localStorage.getItem("deviceId");
+    if (!deviceId) {
+      deviceId = uuidv4(); // Generate a unique device ID
+      localStorage.setItem("deviceId", deviceId);
+    }
+
     const adminData = { email, password, deviceId };
 
     try {
