@@ -1,68 +1,56 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Redirect if not logged in
-import "./DeviceA.css"; // Import external CSS
+import { useNavigate } from "react-router-dom";
+import "./DeviceA.css";
 
 const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const [devices, setDevices] = useState([]);
-  const [token, setToken] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
+    const storedToken = adminToken || localStorage.getItem("adminToken");
+    if (!storedToken) {
+      alert("Unauthorized access. Redirecting to login.");
+      navigate("/admin-login");
+      return;
+    }
+
+    setAdminToken(storedToken);
+
+    if (!deviceId) {
+      console.error("Device ID is missing!");
+      return;
+    }
+
     const fetchDevices = async () => {
       try {
-        // Retrieve admin token from localStorage if missing
-        let storedToken = adminToken || localStorage.getItem("adminToken");
-        if (!storedToken) {
-          alert("Unauthorized access. Redirecting to login.");
-          navigate("/admin-login");
-          return;
-        }
-        setAdminToken(storedToken);
-
-        if (!deviceId) {
-          console.error("Device ID is missing!");
-          return;
-        }
-
-        // Fetch linked devices from the admin's user record
         const deviceRes = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
-
-        if (deviceRes.data?.devices?.length > 0) {
-          setDevices(deviceRes.data.devices); // ✅ Now properly stores device objects
-        } else {
-          console.warn("No linked devices found.");
-          setDevices([]);
-        }
-
-        // Fetch stored Google OAuth token
-        const tokenRes = await axios.get(
-          `https://googl-backend.onrender.com/auth/device-a/get-token?deviceId=${deviceId}`,
-          { headers: { Authorization: `Bearer ${storedToken}` } }
-        );
-        
-
-        setToken(tokenRes.data.googleToken || "No token available");
+        setDevices(deviceRes.data?.devices || []);
       } catch (error) {
-        console.error("Error fetching data:", error.response?.data || error.message);
+        console.error("Error fetching devices:", error.response?.data || error.message);
       }
     };
 
     fetchDevices();
+
+    // Session timeout - Logout after 5 minutes
+    const sessionTimeout = setTimeout(() => {
+      handleLogout();
+    }, 5 * 60 * 1000);
+
+    return () => clearTimeout(sessionTimeout);
   }, [adminToken, deviceId, setAdminToken, navigate]);
 
-  // Login as a specific device user
   const loginAsDevice = async (device) => {
     try {
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { deviceBEmail: device.name }, // ✅ Use device `name` instead of `email`
+        { deviceBEmail: device.name },
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
-
       window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
     } catch (err) {
       console.error("Error logging in as device:", err.response?.data || err.message);
@@ -70,15 +58,17 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    setAdminToken(null);
+    alert("Session expired. Please log in again.");
+    navigate("/admin-login");
+  };
+
   return (
     <div className="admin-container">
+      <button className="logout-button" onClick={handleLogout}>Logout</button>
       <h2 className="admin-title">Admin Panel (Device A)</h2>
-
-      <div className="token-container">
-        <h3>Stored Google OAuth Token</h3>
-        <textarea value={token} readOnly className="token-box"></textarea>
-      </div>
-
       <div className="device-list">
         <h3>Linked Devices</h3>
         {devices.length === 0 ? (
@@ -87,7 +77,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
           <ul>
             {devices.map((device, index) => (
               <li key={index} className="device-item">
-                <span>{device.name || "Unknown Device"}</span> {/* ✅ Display `name` */}
+                <span>{device.name || "Unknown Device"}</span>
                 <button className="login-button" onClick={() => loginAsDevice(device)}>
                   Login as This User
                 </button>
