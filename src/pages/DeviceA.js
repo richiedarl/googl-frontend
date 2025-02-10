@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./DeviceA.css";
@@ -7,21 +7,22 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const [devices, setDevices] = useState([]);
   const navigate = useNavigate();
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("adminToken");
-    setAdminToken(null);
-    alert("Session expired. Please log in again.");
-    navigate("/admin-login");
-  }, [navigate, setAdminToken]);
-
   useEffect(() => {
+    console.log("DeviceA Component Mounted");
+    console.log("adminToken:", adminToken);
+    console.log("setAdminToken type:", typeof setAdminToken); // Debugging line
+    console.log("deviceId:", deviceId);
+
     const storedToken = adminToken || localStorage.getItem("adminToken");
-    console.log("Stored Token:", storedToken);
-    console.log("Device ID:", deviceId); // Debugging line
 
     if (!storedToken) {
       alert("Unauthorized access. Redirecting to login.");
       navigate("/admin-login");
+      return;
+    }
+
+    if (typeof setAdminToken !== "function") {
+      console.error("setAdminToken is not a function! Check props.");
       return;
     }
 
@@ -51,20 +52,15 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
     }, 5 * 60 * 1000);
 
     return () => clearTimeout(sessionTimeout);
-  }, [adminToken, deviceId, setAdminToken, navigate, handleLogout]);
+  }, [adminToken, deviceId, setAdminToken, navigate]);
 
-  const loginAsDevice = async (device) => {
-    try {
-      await axios.post(
-        "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { deviceBEmail: device.name, deviceId: device.deviceId },
-        { headers: { Authorization: `Bearer ${adminToken}` } }
-      );
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
-    } catch (err) {
-      console.error("Error logging in as device:", err.response?.data || err.message);
-      alert("Failed to log in as device.");
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    if (typeof setAdminToken === "function") {
+      setAdminToken(null);
     }
+    alert("Session expired. Please log in again.");
+    navigate("/admin-login");
   };
 
   return (
