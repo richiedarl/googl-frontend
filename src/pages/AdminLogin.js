@@ -1,52 +1,45 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid"; // Import UUID for unique ID generation
-import "./AdminRegister.css"; // Using the same CSS file
+import { v4 as uuidv4 } from "uuid";
+import "./AdminRegister.css"; 
 
 const AdminLogin = ({ setAdminToken }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(""); 
+    setLoading(true);
 
-    // Check if deviceId exists, else generate a new one
-    let deviceId = localStorage.getItem("deviceId");
-    if (!deviceId) {
-      deviceId = uuidv4(); // Generate a unique device ID
-      localStorage.setItem("deviceId", deviceId);
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required.");
+      setLoading(false);
+      return;
     }
 
-    const adminData = { email, password, deviceId };
+    let deviceId = localStorage.getItem("deviceId") || uuidv4();
+    localStorage.setItem("deviceId", deviceId);
 
     try {
-      const response = await fetch(
+      const { data } = await axios.post(
         "https://googl-backend.onrender.com/auth/login-admin",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(adminData),
-        }
+        { email, password, deviceId },
+        { headers: { "Content-Type": "application/json" } }
       );
 
-      const data = await response.json();
-      console.log("Response Status:", response.status);
-      console.log("Response Data:", data);
-
-      if (response.ok) {
-        localStorage.setItem("adminToken", data.token);
-        if (setAdminToken) setAdminToken(data.token);
-        alert("Login successful! Redirecting...");
-        navigate("/device-a");
-      } else {
-        setError(data?.error || "Invalid credentials.");
-      }
+      localStorage.setItem("adminToken", data.token);
+      setAdminToken?.(data.token);
+      alert("Login successful! Redirecting...");
+      navigate("/device-a");
     } catch (error) {
-      console.error("Login Error:", error);
-      setError("Server error. Please try again.");
+      setError(error.response?.data?.error || "Invalid credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,8 +64,8 @@ const AdminLogin = ({ setAdminToken }) => {
           required
           className="auth-input"
         />
-        <button type="submit" className="auth-button">
-          Login
+        <button type="submit" className="auth-button" disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>
