@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 
 const DeviceBDashboard = () => {
   const location = useLocation();
-//   const [email, setEmail] = useState("");
+
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
