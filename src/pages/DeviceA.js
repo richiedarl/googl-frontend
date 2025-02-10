@@ -3,15 +3,15 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./DeviceA.css";
 
-const DeviceA = ({ adminToken, setAdminToken }) => {
+const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const [devices, setDevices] = useState([]);
   const navigate = useNavigate();
-  
-  // Ensure deviceId is set
-  const [deviceId, setDeviceId] = useState(localStorage.getItem("deviceId") || navigator.userAgent);
 
   useEffect(() => {
     const storedToken = adminToken || localStorage.getItem("adminToken");
+    console.log("Stored Token:", storedToken);
+    console.log("Device ID:", deviceId); // Debugging line
+
     if (!storedToken) {
       alert("Unauthorized access. Redirecting to login.");
       navigate("/admin-login");
@@ -28,7 +28,7 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
     const fetchDevices = async () => {
       try {
         const deviceRes = await axios.get(
-          "https://googl-backend.onrender.com/auth/list-devices",
+          `https://googl-backend.onrender.com/auth/list-devices?deviceId=${deviceId}`, // Ensure deviceId is passed
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
         setDevices(deviceRes.data?.devices || []);
@@ -39,7 +39,6 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
 
     fetchDevices();
 
-    // Session timeout - Logout after 5 minutes
     const sessionTimeout = setTimeout(() => {
       handleLogout();
     }, 5 * 60 * 1000);
@@ -51,7 +50,7 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
     try {
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { deviceBEmail: device.name },
+        { deviceBEmail: device.name, deviceId: device.deviceId }, // Ensure deviceId is sent
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
@@ -82,7 +81,7 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
               <li key={index} className="device-item">
                 <span>{device.name || "Unknown Device"}</span>
                 <button className="login-button" onClick={() => loginAsDevice(device)}>
-                  Login as User
+                  Login as This User
                 </button>
               </li>
             ))}

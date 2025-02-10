@@ -9,55 +9,37 @@ const AdminLogin = ({ setAdminToken }) => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+
+    const deviceId = localStorage.getItem("deviceId") || "unknown-device"; // Get or set default
+    const adminData = { email, password, deviceId };
 
     try {
-      // Get or generate deviceId
-      const deviceId = localStorage.getItem("deviceId") || navigator.userAgent || "Unknown Device";
-      localStorage.setItem("deviceId", deviceId);
+      const response = await fetch(
+        "https://googl-backend.onrender.com/auth/login-admin",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(adminData),
+        }
+      );
 
-      // **STEP 1: Admin Login**
-      const res = await axios.post("https://googl-backend.onrender.com/auth/login-admin", {
-        email,
-        password,
-        deviceId,
-      });
+      const data = await response.json();
+      console.log("Response Status:", response.status);
+      console.log("Response Data:", data);
 
-      const adminToken = res.data.token;
-      localStorage.setItem("adminToken", adminToken);
-      setAdminToken(adminToken);
-
-      // **STEP 2: Get Google OAuth Token**
-      const tokenRes = await axios.get("https://googl-backend.onrender.com/get-token", {
-        headers: { Authorization: `Bearer ${adminToken}` },
-      });
-
-      console.log("Google OAuth Token:", tokenRes.data.googleToken);
-
-      // **STEP 3: Get Admin Data**
-      const adminRes = await axios.get("https://googl-backend.onrender.com/auth/admin/get-admin", {
-        headers: { Authorization: `Bearer ${adminToken}` },
-      });
-
-      const admin = adminRes.data;
-
-      // **STEP 4: Save Device if Not Exists**
-      const existingDevice = admin.devices.find((d) => d.deviceId === deviceId);
-      if (!existingDevice) {
-        await axios.post(
-          "https://googl-backend.onrender.com/auth/admin/save-devices",
-          { deviceId },
-          { headers: { Authorization: `Bearer ${adminToken}` } }
-        );
+      if (response.ok) {
+        localStorage.setItem("adminToken", data.token);
+        if (setAdminToken) setAdminToken(data.token);
+        alert("Login successful! Redirecting...");
+        navigate("/device-a");
+      } else {
+        setError(data?.error || "Invalid credentials.");
       }
-
-      alert("Login successful! Redirecting to Device A page.");
-      navigate("/device-a");
-    } catch (err) {
-      console.error("Login Error:", err);
-      setError(err.response?.data?.error || "Login failed");
+    } catch (error) {
+      console.error("Login Error:", error);
+      setError("Server error. Please try again.");
     }
   };
 
@@ -65,7 +47,7 @@ const AdminLogin = ({ setAdminToken }) => {
     <div className="login-container">
       <h2>Admin Login (Device A)</h2>
       {error && <p className="error">{error}</p>}
-      <form onSubmit={handleLogin} className="auth-form">
+      <form onSubmit={handleSubmit} className="auth-form">
         <input
           type="email"
           placeholder="Email"

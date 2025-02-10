@@ -1,11 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./AdminRegister.css"; // Import external CSS
+import "./AdminRegister.css";
 
 const AdminRegister = ({ setAdminToken }) => {
-  const [admin, setAdmin] = useState({ name: "", email: "", password: "" });
+  const [admin, setAdmin] = useState({ name: "", email: "", password: "", deviceId: "" });
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedDeviceId = localStorage.getItem("deviceId");
+    if (storedDeviceId) {
+      setAdmin((prevAdmin) => ({ ...prevAdmin, deviceId: storedDeviceId }));
+    }
+    console.log("Device ID:", storedDeviceId); // Debugging line
+  }, []);
 
   const handleChange = (e) => {
     setAdmin({ ...admin, [e.target.name]: e.target.value });
@@ -13,21 +21,26 @@ const AdminRegister = ({ setAdminToken }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
+    if (!admin.deviceId) {
+      alert("Device ID is missing!");
+      return;
+    }
+
     try {
       const response = await fetch("https://googl-backend.onrender.com/auth/register-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(admin),
       });
-  
+
       const data = await response.json();
       console.log("Response Status:", response.status);
       console.log("Response Data:", data);
-  
+
       if (response.ok) {
         localStorage.setItem("adminToken", data.token);
-        if (setAdminToken) setAdminToken(data.token); // Fix: Avoid calling undefined function
+        if (setAdminToken) setAdminToken(data.token);
         alert("Registration successful! Redirecting to Device A page.");
         navigate("/device-a");
       } else {
@@ -35,7 +48,7 @@ const AdminRegister = ({ setAdminToken }) => {
           alert("User already registered. Redirecting to login page.");
           navigate("/admin-login");
         } else {
-          setMessage(data?.msg || "Error registering admin."); // Fix: Avoid empty messages
+          setMessage(data?.msg || "Error registering admin.");
         }
       }
     } catch (error) {
