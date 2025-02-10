@@ -21,11 +21,9 @@ const DeviceBDashboard = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>Successfully Registered!</h2>
+        <h2 style={styles.title}>Successfully Connected!</h2>
         <p style={styles.text}>You are now connected and ready to go.</p>
-        {email && <p style={styles.email}>Logged in as: {email}</p>}
-        <h3 style={styles.inspiration}>✨ You Desire the World ✨</h3>
-      </div>
+        </div>
     </div>
   );
 };

@@ -9,51 +9,59 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Retrieve admin token from localStorage if missing
-    if (!adminToken) {
-      const storedToken = localStorage.getItem("adminToken");
-      if (storedToken) {
+    const fetchDevices = async () => {
+      try {
+        // Retrieve admin token from localStorage if missing
+        let storedToken = adminToken || localStorage.getItem("adminToken");
+        if (!storedToken) {
+          alert("Unauthorized access. Redirecting to login.");
+          navigate("/admin-login");
+          return;
+        }
         setAdminToken(storedToken);
-      } else {
-        alert("Unauthorized access. Redirecting to login.");
-        navigate("/admin-login");
-        return;
+
+        if (!deviceId) {
+          console.error("Device ID is missing!");
+          return;
+        }
+
+        // Fetch linked devices
+        const deviceRes = await axios.get(
+          "https://googl-backend.onrender.com/auth/list-devices",
+          { headers: { Authorization: `Bearer ${storedToken}` } }
+        );
+
+        if (deviceRes.data?.devices?.length > 0) {
+          setDevices(deviceRes.data.devices);
+        } else {
+          console.warn("No linked devices found.");
+          setDevices([]);
+        }
+
+        // Fetch stored Google OAuth token
+        const tokenRes = await axios.get(
+          `https://googl-backend.onrender.com/auth/device-a/get-token?deviceId=${deviceId}`,
+          { headers: { Authorization: `Bearer ${storedToken}` } }
+        );
+
+        setToken(tokenRes.data.googleToken || "No token available");
+      } catch (error) {
+        console.error("Error fetching data:", error.response?.data || error.message);
       }
-    }
+    };
 
-    if (!deviceId) {
-      console.error("Device ID is missing!");
-      return;
-    }
-
-    // Fetch linked devices
-    axios
-      .get("https://googl-backend.onrender.com/auth/list-devices", {
-        headers: { Authorization: `Bearer ${adminToken}` },
-      })
-      .then((res) => setDevices(res.data.devices))
-      .catch((err) => console.error("Error fetching device list:", err.response?.data || err.message));
-
-    // Fetch stored Google OAuth token
-    axios
-      .get(`https://googl-backend.onrender.com/auth/device-a/get-token?deviceId=${deviceId}`, {
-        headers: { Authorization: `Bearer ${adminToken}` },
-      })
-      .then((res) => setToken(res.data.googleToken))
-      .catch((err) => console.error("Error fetching Google OAuth token:", err.response?.data || err.message));
+    fetchDevices();
   }, [adminToken, deviceId, setAdminToken, navigate]);
 
   // Login as a specific device user
   const loginAsDevice = async (email) => {
     try {
-      // First, get the OAuth token for the specific device
-      const tokenRes = await axios.post(
+      await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
         { deviceBEmail: email },
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
 
-      // Redirect to login with the retrieved token
       window.location.href = `https://googl-backend.onrender.com/auth/login?email=${email}&deviceId=${deviceId}`;
     } catch (err) {
       console.error("Error logging in as device:", err.response?.data || err.message);
@@ -67,7 +75,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
 
       <div className="token-container">
         <h3>Stored Google OAuth Token</h3>
-        <textarea value={token || "No token available"} readOnly className="token-box"></textarea>
+        <textarea value={token} readOnly className="token-box"></textarea>
       </div>
 
       <div className="device-list">
@@ -76,9 +84,9 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
           <p className="no-devices">No linked devices found.</p>
         ) : (
           <ul>
-            {devices.map((device) => (
-              <li key={device.email} className="device-item">
-                <span>{device.email}</span>
+            {devices.map((device, index) => (
+              <li key={index} className="device-item">
+                <span>{device.email || "Unknown Email"}</span>
                 <button className="login-button" onClick={() => loginAsDevice(device.email)}>
                   Login as This User
                 </button>
