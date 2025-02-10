@@ -1,42 +1,38 @@
+// DeviceA.js
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./DeviceA.css";
 
-const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
+const DeviceA = ({ adminToken, setAdminToken }) => {
   const [devices, setDevices] = useState([]);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get deviceId from location state or localStorage
+  const deviceId = location.state?.deviceId || localStorage.getItem("deviceId");
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("adminToken");
-    if (typeof setAdminToken === "function") {
+    localStorage.removeItem("deviceId");
+    if (setAdminToken) {
       setAdminToken(null);
-    } else {
-      console.error("setAdminToken is not a function");
     }
-    alert("Session expired. Please log in again.");
     navigate("/admin-login");
   }, [navigate, setAdminToken]);
 
   useEffect(() => {
     const storedToken = adminToken || localStorage.getItem("adminToken");
-    console.log("Stored Token:", storedToken);
-    console.log("Device ID:", deviceId);
-
+    
     if (!storedToken) {
-      alert("Unauthorized access. Redirecting to login.");
       navigate("/admin-login");
       return;
     }
 
-    if (typeof setAdminToken === "function") {
-      setAdminToken(storedToken);
-    } else {
-      console.error("setAdminToken is not a function");
-    }
-
     if (!deviceId) {
-      console.error("Device ID is missing! Check if 'deviceId' is passed correctly.");
+      setError("Device ID is missing. Please login again.");
+      handleLogout();
       return;
     }
 
@@ -47,31 +43,41 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
         setDevices(deviceRes.data?.devices || []);
+        setError(null);
       } catch (error) {
-        console.error("Error fetching devices:", error.response?.data || error.message);
+        const errorMessage = error.response?.data?.error || error.message;
+        setError(`Error fetching devices: ${errorMessage}`);
+        
+        if (error.response?.status === 401) {
+          handleLogout();
+        }
       }
     };
 
     fetchDevices();
 
-    const sessionTimeout = setTimeout(() => {
-      handleLogout();
-    }, 5 * 60 * 1000);
-
+    const sessionTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
     return () => clearTimeout(sessionTimeout);
-  }, [adminToken, deviceId, setAdminToken, navigate, handleLogout]);
+  }, [adminToken, deviceId, navigate, handleLogout]);
 
   const loginAsDevice = async (device) => {
     try {
+      const storedToken = adminToken || localStorage.getItem("adminToken");
+      
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { deviceBEmail: device.name, deviceId: device.deviceId },
-        { headers: { Authorization: `Bearer ${adminToken}` } }
+        { 
+          deviceBEmail: device.name, 
+          deviceId: device.deviceId 
+        },
+        { 
+          headers: { Authorization: `Bearer ${storedToken}` } 
+        }
       );
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
+
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(device.name)}&deviceId=${device.deviceId}`;
     } catch (err) {
-      console.error("Error logging in as device:", err.response?.data || err.message);
-      alert("Failed to log in as device.");
+      setError(`Failed to log in as device: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -79,6 +85,13 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
     <div className="admin-container">
       <button className="logout-button" onClick={handleLogout}>Logout</button>
       <h2 className="admin-title">Admin Panel</h2>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
       <div className="device-list">
         <h3>Linked Devices</h3>
         {devices.length === 0 ? (
@@ -86,9 +99,12 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
         ) : (
           <ul>
             {devices.map((device, index) => (
-              <li key={index} className="device-item">
+              <li key={device.deviceId || index} className="device-item">
                 <span>{device.name || "Unknown Device"}</span>
-                <button className="login-button" onClick={() => loginAsDevice(device)}>
+                <button 
+                  className="login-button" 
+                  onClick={() => loginAsDevice(device)}
+                >
                   Login as This User
                 </button>
               </li>
@@ -98,6 +114,44 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
       </div>
     </div>
   );
+};
+
+
+  const styles = {
+    container: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "100vh",
+      backgroundColor: "#f4f4f4",
+    },
+    card: {
+      backgroundColor: "white",
+      padding: "2rem",
+      borderRadius: "8px",
+      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+      textAlign: "center",
+    },
+    title: {
+      fontSize: "24px",
+      fontWeight: "bold",
+      color: "#333",
+    },
+    text: {
+      fontSize: "16px",
+      color: "#666",
+      marginBottom: "20px",
+    },
+    button: {
+      padding: "10px 20px",
+      backgroundColor: "#4285F4",
+      color: "white",
+      textDecoration: "none",
+      borderRadius: "5px",
+      fontSize: "16px",
+      fontWeight: "bold",
+      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+    },
 };
 
 export default DeviceA;

@@ -1,3 +1,4 @@
+// AdminLogin.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -22,8 +23,11 @@ const AdminLogin = ({ setAdminToken }) => {
       return;
     }
 
-    let deviceId = localStorage.getItem("deviceId") || uuidv4();
-    localStorage.setItem("deviceId", deviceId);
+    let deviceId = localStorage.getItem("deviceId");
+    if (!deviceId) {
+      deviceId = uuidv4();
+      localStorage.setItem("deviceId", deviceId);
+    }
 
     try {
       const { data } = await axios.post(
@@ -34,8 +38,11 @@ const AdminLogin = ({ setAdminToken }) => {
 
       localStorage.setItem("adminToken", data.token);
       setAdminToken?.(data.token);
-      alert("Login successful! Redirecting...");
-      navigate("/device-a");
+      
+      // Navigate with state containing deviceId
+      navigate("/device-a", { 
+        state: { deviceId }
+      });
     } catch (error) {
       setError(error.response?.data?.error || "Invalid credentials.");
     } finally {
