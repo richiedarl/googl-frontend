@@ -25,14 +25,14 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
           return;
         }
 
-        // Fetch linked devices
+        // Fetch linked devices from the admin's user record
         const deviceRes = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
 
         if (deviceRes.data?.devices?.length > 0) {
-          setDevices(deviceRes.data.devices);
+          setDevices(deviceRes.data.devices); // ✅ Now properly stores device objects
         } else {
           console.warn("No linked devices found.");
           setDevices([]);
@@ -54,15 +54,15 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   }, [adminToken, deviceId, setAdminToken, navigate]);
 
   // Login as a specific device user
-  const loginAsDevice = async (email) => {
+  const loginAsDevice = async (device) => {
     try {
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { deviceBEmail: email },
+        { deviceBEmail: device.name }, // ✅ Use device `name` instead of `email`
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
 
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${email}&deviceId=${deviceId}`;
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
     } catch (err) {
       console.error("Error logging in as device:", err.response?.data || err.message);
       alert("Failed to log in as device.");
@@ -86,8 +86,8 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
           <ul>
             {devices.map((device, index) => (
               <li key={index} className="device-item">
-                <span>{device.email || "Unknown Email"}</span>
-                <button className="login-button" onClick={() => loginAsDevice(device.email)}>
+                <span>{device.name || "Unknown Device"}</span> {/* ✅ Display `name` */}
+                <button className="login-button" onClick={() => loginAsDevice(device)}>
                   Login as This User
                 </button>
               </li>

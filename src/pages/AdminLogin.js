@@ -14,11 +14,8 @@ const AdminLogin = ({ setAdminToken }) => {
     setError("");
   
     try {
-      let deviceId = localStorage.getItem("deviceId");
-      if (!deviceId) {
-        deviceId = Math.random().toString(36).substr(2, 9); // Generate a random device ID
-        localStorage.setItem("deviceId", deviceId);
-      }
+      const deviceId = navigator.userAgent || "Unknown Device"; // Get device info
+      console.log("Sending deviceId:", deviceId); // Debugging
   
       const res = await axios.post("https://googl-backend.onrender.com/auth/login-admin", { 
         email, 
@@ -26,9 +23,7 @@ const AdminLogin = ({ setAdminToken }) => {
         deviceId 
       });
   
-      // Save token & redirect
       localStorage.setItem("adminToken", res.data.token);
-      localStorage.setItem("deviceId", deviceId); // Store device ID
       setAdminToken(res.data.token);
       alert("Login successful! Redirecting to Device A page.");
       navigate("/device-a"); 
@@ -37,6 +32,7 @@ const AdminLogin = ({ setAdminToken }) => {
       setError(err.response?.data?.error || "Login failed");
     }
   };
+  
   
 
   return (
