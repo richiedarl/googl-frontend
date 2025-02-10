@@ -8,7 +8,6 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   const navigate = useNavigate();
 
   const handleLogout = useCallback(() => {
-    console.log("Logging out...");
     localStorage.removeItem("adminToken");
     if (typeof setAdminToken === "function") {
       setAdminToken(null);
@@ -37,17 +36,17 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
     }
 
     if (!deviceId) {
-      console.error("Device ID is missing!");
+      console.error("Device ID is missing! Check if 'deviceId' is passed correctly.");
       return;
     }
 
     const fetchDevices = async () => {
       try {
-        const response = await axios.get(
+        const deviceRes = await axios.get(
           `https://googl-backend.onrender.com/auth/list-devices?deviceId=${deviceId}`,
           { headers: { Authorization: `Bearer ${storedToken}` } }
         );
-        setDevices(response.data?.devices || []);
+        setDevices(deviceRes.data?.devices || []);
       } catch (error) {
         console.error("Error fetching devices:", error.response?.data || error.message);
       }
@@ -55,7 +54,10 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
 
     fetchDevices();
 
-    const sessionTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
+    const sessionTimeout = setTimeout(() => {
+      handleLogout();
+    }, 5 * 60 * 1000);
+
     return () => clearTimeout(sessionTimeout);
   }, [adminToken, deviceId, setAdminToken, navigate, handleLogout]);
 
@@ -67,8 +69,8 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       window.location.href = `https://googl-backend.onrender.com/auth/login?email=${device.name}&deviceId=${device.deviceId}`;
-    } catch (error) {
-      console.error("Error logging in as device:", error.response?.data || error.message);
+    } catch (err) {
+      console.error("Error logging in as device:", err.response?.data || err.message);
       alert("Failed to log in as device.");
     }
   };
