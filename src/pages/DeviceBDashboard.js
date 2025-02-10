@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 
 const DeviceBDashboard = () => {
   const location = useLocation();
-
+  const [email, setEmail] = useState(""); // ✅ Define state for email
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -23,7 +23,8 @@ const DeviceBDashboard = () => {
       <div style={styles.card}>
         <h2 style={styles.title}>Successfully Connected!</h2>
         <p style={styles.text}>You are now connected and ready to go.</p>
-        </div>
+        <p style={styles.email}>Email: {email}</p> {/* Display email */}
+      </div>
     </div>
   );
 };
@@ -58,12 +59,6 @@ const styles = {
     fontWeight: "bold",
     color: "#3498db",
     marginBottom: "15px",
-  },
-  inspiration: {
-    fontSize: "20px",
-    fontWeight: "bold",
-    color: "#2c3e50",
-    marginTop: "15px",
   },
 };
 
