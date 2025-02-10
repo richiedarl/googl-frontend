@@ -8,62 +8,77 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Get deviceId from location state or localStorage
+
+  // Retrieve deviceId from location state or localStorage
   const deviceId = location.state?.deviceId || localStorage.getItem("deviceId");
 
+  useEffect(() => {
+    console.log("DeviceA Component Mounted");
+    console.log("Admin Token:", adminToken);
+    console.log("Device ID:", deviceId);
+  }, []);
+
   const handleLogout = useCallback(() => {
+    console.log("Logging out...");
     localStorage.removeItem("adminToken");
     localStorage.removeItem("deviceId");
-    if (setAdminToken) {
+
+    if (typeof setAdminToken === "function") {
       setAdminToken(null);
+    } else {
+      console.warn("setAdminToken is not defined or not a function");
     }
+
     navigate("/admin-login");
   }, [navigate, setAdminToken]);
 
   useEffect(() => {
     const storedToken = adminToken || localStorage.getItem("adminToken");
-    
+
     if (!storedToken) {
+      console.warn("No stored token found. Redirecting to login.");
       navigate("/admin-login");
       return;
     }
 
     if (!deviceId) {
+      console.error("Device ID is missing!");
       setError("Device ID is missing. Please login again.");
-      handleLogout();
       return;
     }
 
     const fetchDevices = async () => {
       try {
-        // The endpoint returns deviceB users
-        const deviceRes = await axios.get(
+        console.log("Fetching devices...");
+        const response = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
-          { 
-            headers: { 
+          {
+            headers: {
               Authorization: `Bearer ${storedToken}`,
-              'Content-Type': 'application/json'
-            }
+              "Content-Type": "application/json",
+            },
           }
         );
 
-        // Transform the response to match our component's expectations
-        const transformedDevices = deviceRes.data?.devices.map(device => ({
-          name: device.email,
-          deviceId: deviceId, // Using the admin's deviceId for tracking
-          email: device.email,
-          createdAt: device.createdAt,
-          oauthToken: device.oauthToken
-        })) || [];
+        console.log("Devices Fetched:", response.data);
+
+        const transformedDevices =
+          response.data?.devices.map((device) => ({
+            name: device.email,
+            deviceId, // Using the admin's deviceId for tracking
+            email: device.email,
+            createdAt: device.createdAt,
+            oauthToken: device.oauthToken,
+          })) || [];
 
         setDevices(transformedDevices);
         setError(null);
       } catch (error) {
         const errorMessage = error.response?.data?.error || error.message;
-        console.error("Error details:", error.response || error);
+        console.error("Error fetching devices:", errorMessage);
+
         setError(`Error fetching devices: ${errorMessage}`);
-        
+
         if (error.response?.status === 401) {
           handleLogout();
         }
@@ -79,59 +94,65 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
   const loginAsDevice = async (device) => {
     try {
       const storedToken = adminToken || localStorage.getItem("adminToken");
-      
+
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
 
-      // First, make the login-to-device request
+      console.log("Logging in as device:", device.email);
+
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        { 
-          deviceBEmail: device.email, // Using email instead of name
-          deviceId: device.deviceId
+        {
+          deviceBEmail: device.email,
+          deviceId: device.deviceId,
         },
-        { 
-          headers: { 
+        {
+          headers: {
             Authorization: `Bearer ${storedToken}`,
-            'Content-Type': 'application/json'
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      // Then redirect to the login page with the correct parameters
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(device.email)}&deviceId=${device.deviceId}`;
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(
+        device.email
+      )}&deviceId=${device.deviceId}`;
     } catch (err) {
-      console.error("Login error details:", err.response || err);
-      setError(`Failed to log in as device: ${err.response?.data?.error || err.message}`);
+      console.error("Login error:", err.response || err);
+      setError(
+        `Failed to log in as device: ${
+          err.response?.data?.error || err.message
+        }`
+      );
     }
   };
 
   return (
     <div className="admin-container">
-      <button className="logout-button" onClick={handleLogout}>Logout</button>
+      <button className="logout-button" onClick={handleLogout}>
+        Logout
+      </button>
       <h2 className="admin-title">Admin Panel</h2>
-      
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
+
+      {error && <div className="error-message">{error}</div>}
 
       <div className="device-list">
         <h3>Available Device B Users</h3>
         {devices.length === 0 ? (
-          <p className="no-devices">No Device B users found.</p>
+          <p className="no-devices">No Linked Devices found.</p>
         ) : (
           <ul>
             {devices.map((device, index) => (
               <li key={device.email || index} className="device-item">
                 <div className="device-info">
                   <span className="device-email">{device.email}</span>
-                  <span className="device-created">Created: {new Date(device.createdAt).toLocaleDateString()}</span>
+                  <span className="device-created">
+                    Created: {new Date(device.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
-                <button 
-                  className="login-button" 
+                <button
+                  className="login-button"
                   onClick={() => loginAsDevice(device)}
                 >
                   Login as This User
@@ -144,7 +165,5 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
     </div>
   );
 };
-
-
 
 export default DeviceA;
