@@ -28,7 +28,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
 
     // Fetch linked devices
     axios
-      .get(`https://googl-backend.onrender.com/device-a/list-devices?deviceId=${deviceId}`, {
+      .get("https://googl-backend.onrender.com/auth/list-devices", {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
       .then((res) => setDevices(res.data.devices))
@@ -36,7 +36,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
 
     // Fetch stored Google OAuth token
     axios
-      .get(`https://googl-backend.onrender.com/device-a/get-token?deviceId=${deviceId}`, {
+      .get(`https://googl-backend.onrender.com/auth/device-a/get-token?deviceId=${deviceId}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
       .then((res) => setToken(res.data.googleToken))
@@ -44,8 +44,21 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   }, [adminToken, deviceId, setAdminToken, navigate]);
 
   // Login as a specific device user
-  const loginAsDevice = (email) => {
-    window.location.href = `https://googl-backend.onrender.com/login?email=${email}&deviceId=${deviceId}`;
+  const loginAsDevice = async (email) => {
+    try {
+      // First, get the OAuth token for the specific device
+      const tokenRes = await axios.post(
+        "https://googl-backend.onrender.com/auth/device-a/login-to-device",
+        { deviceBEmail: email },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+
+      // Redirect to login with the retrieved token
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${email}&deviceId=${deviceId}`;
+    } catch (err) {
+      console.error("Error logging in as device:", err.response?.data || err.message);
+      alert("Failed to log in as device.");
+    }
   };
 
   return (
