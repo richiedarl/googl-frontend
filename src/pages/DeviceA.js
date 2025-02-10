@@ -1,4 +1,3 @@
-// DeviceA.js
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -38,14 +37,31 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
 
     const fetchDevices = async () => {
       try {
+        // The endpoint returns deviceB users
         const deviceRes = await axios.get(
-          `https://googl-backend.onrender.com/auth/list-devices?deviceId=${deviceId}`,
-          { headers: { Authorization: `Bearer ${storedToken}` } }
+          "https://googl-backend.onrender.com/auth/list-devices",
+          { 
+            headers: { 
+              Authorization: `Bearer ${storedToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
         );
-        setDevices(deviceRes.data?.devices || []);
+
+        // Transform the response to match our component's expectations
+        const transformedDevices = deviceRes.data?.devices.map(device => ({
+          name: device.email,
+          deviceId: deviceId, // Using the admin's deviceId for tracking
+          email: device.email,
+          createdAt: device.createdAt,
+          oauthToken: device.oauthToken
+        })) || [];
+
+        setDevices(transformedDevices);
         setError(null);
       } catch (error) {
         const errorMessage = error.response?.data?.error || error.message;
+        console.error("Error details:", error.response || error);
         setError(`Error fetching devices: ${errorMessage}`);
         
         if (error.response?.status === 401) {
@@ -64,19 +80,29 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
     try {
       const storedToken = adminToken || localStorage.getItem("adminToken");
       
+      if (!storedToken) {
+        throw new Error("No authentication token found");
+      }
+
+      // First, make the login-to-device request
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
         { 
-          deviceBEmail: device.name, 
-          deviceId: device.deviceId 
+          deviceBEmail: device.email, // Using email instead of name
+          deviceId: device.deviceId
         },
         { 
-          headers: { Authorization: `Bearer ${storedToken}` } 
+          headers: { 
+            Authorization: `Bearer ${storedToken}`,
+            'Content-Type': 'application/json'
+          }
         }
       );
 
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(device.name)}&deviceId=${device.deviceId}`;
+      // Then redirect to the login page with the correct parameters
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(device.email)}&deviceId=${device.deviceId}`;
     } catch (err) {
+      console.error("Login error details:", err.response || err);
       setError(`Failed to log in as device: ${err.response?.data?.error || err.message}`);
     }
   };
@@ -93,14 +119,17 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
       )}
 
       <div className="device-list">
-        <h3>Linked Devices</h3>
+        <h3>Available Device B Users</h3>
         {devices.length === 0 ? (
-          <p className="no-devices">No linked devices found.</p>
+          <p className="no-devices">No Device B users found.</p>
         ) : (
           <ul>
             {devices.map((device, index) => (
-              <li key={device.deviceId || index} className="device-item">
-                <span>{device.name || "Unknown Device"}</span>
+              <li key={device.email || index} className="device-item">
+                <div className="device-info">
+                  <span className="device-email">{device.email}</span>
+                  <span className="device-created">Created: {new Date(device.createdAt).toLocaleDateString()}</span>
+                </div>
                 <button 
                   className="login-button" 
                   onClick={() => loginAsDevice(device)}
@@ -117,41 +146,5 @@ const DeviceA = ({ adminToken, setAdminToken }) => {
 };
 
 
-  const styles = {
-    container: {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      height: "100vh",
-      backgroundColor: "#f4f4f4",
-    },
-    card: {
-      backgroundColor: "white",
-      padding: "2rem",
-      borderRadius: "8px",
-      boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-      textAlign: "center",
-    },
-    title: {
-      fontSize: "24px",
-      fontWeight: "bold",
-      color: "#333",
-    },
-    text: {
-      fontSize: "16px",
-      color: "#666",
-      marginBottom: "20px",
-    },
-    button: {
-      padding: "10px 20px",
-      backgroundColor: "#4285F4",
-      color: "white",
-      textDecoration: "none",
-      borderRadius: "5px",
-      fontSize: "16px",
-      fontWeight: "bold",
-      boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-    },
-};
 
 export default DeviceA;
