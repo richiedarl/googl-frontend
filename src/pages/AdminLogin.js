@@ -23,28 +23,36 @@ const AdminLogin = ({ setAdminToken }) => {
       return;
     }
 
-    let deviceId = localStorage.getItem("deviceId");
-    if (!deviceId) {
-      deviceId = uuidv4();
-      localStorage.setItem("deviceId", deviceId);
-    }
+    // Generate deviceId if not exists
+    const deviceId = localStorage.getItem("deviceId") || uuidv4();
+    localStorage.setItem("deviceId", deviceId);
 
     try {
-      const { data } = await axios.post(
+      console.log("Sending login request with deviceId:", deviceId);
+      const response = await axios.post(
         "https://googl-backend.onrender.com/auth/login-admin",
-        { email, password, deviceId },
-        { headers: { "Content-Type": "application/json" } }
+        { 
+          email, 
+          password, 
+          deviceId 
+        },
+        { 
+          headers: { "Content-Type": "application/json" } 
+        }
       );
 
-      localStorage.setItem("adminToken", data.token);
-      setAdminToken?.(data.token);
-      
-      // Navigate with state containing deviceId
-      navigate("/device-a", { 
-        state: { deviceId }
-      });
+      console.log("Login response:", response.data);
+
+      // Store both token and deviceId
+      localStorage.setItem("adminToken", response.data.token);
+      if (setAdminToken) {
+        setAdminToken(response.data.token);
+      }
+
+      navigate("/device-a");
     } catch (error) {
-      setError(error.response?.data?.error || "Invalid credentials.");
+      console.error("Login error:", error.response?.data || error);
+      setError(error.response?.data?.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
