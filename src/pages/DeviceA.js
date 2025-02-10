@@ -3,9 +3,12 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./DeviceA.css";
 
-const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
+const DeviceA = ({ adminToken, setAdminToken }) => {
   const [devices, setDevices] = useState([]);
   const navigate = useNavigate();
+  
+  // Ensure deviceId is set
+  const [deviceId, setDeviceId] = useState(localStorage.getItem("deviceId") || navigator.userAgent);
 
   useEffect(() => {
     const storedToken = adminToken || localStorage.getItem("adminToken");
@@ -68,7 +71,7 @@ const DeviceA = ({ adminToken, setAdminToken, deviceId }) => {
   return (
     <div className="admin-container">
       <button className="logout-button" onClick={handleLogout}>Logout</button>
-      <h2 className="admin-title">Admin Panel (Device A)</h2>
+      <h2 className="admin-title">Admin Panel</h2>
       <div className="device-list">
         <h3>Linked Devices</h3>
         {devices.length === 0 ? (
