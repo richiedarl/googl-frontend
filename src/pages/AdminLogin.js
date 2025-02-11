@@ -1,9 +1,8 @@
-// AdminLogin.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
-import "./AdminRegister.css"; 
+import "./AdminRegister.css";
 
 const AdminLogin = ({ setAdminToken }) => {
   const [email, setEmail] = useState("");
@@ -14,7 +13,7 @@ const AdminLogin = ({ setAdminToken }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); 
+    setError("");
     setLoading(true);
 
     if (!email.trim() || !password.trim()) {
@@ -27,32 +26,67 @@ const AdminLogin = ({ setAdminToken }) => {
     const deviceId = localStorage.getItem("deviceId") || uuidv4();
     localStorage.setItem("deviceId", deviceId);
 
+    const requestData = {
+      email,
+      password,
+      deviceId
+    };
+
+    console.log("Attempting login with data:", { 
+      email,
+      deviceId,
+      passwordLength: password.length 
+    });
+
     try {
-      console.log("Sending login request with deviceId:", deviceId);
       const response = await axios.post(
         "https://googl-backend.onrender.com/auth/login-admin",
-        { 
-          email, 
-          password, 
-          deviceId 
-        },
-        { 
-          headers: { "Content-Type": "application/json" } 
+        requestData,
+        {
+          headers: { 
+            "Content-Type": "application/json"
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
 
-      console.log("Login response:", response.data);
+      console.log("Login response received:", {
+        status: response.status,
+        hasToken: !!response.data.token,
+        redirect: response.data.redirect
+      });
 
-      // Store both token and deviceId
-      localStorage.setItem("adminToken", response.data.token);
-      if (setAdminToken) {
-        setAdminToken(response.data.token);
+      if (response.data.token) {
+        localStorage.setItem("adminToken", response.data.token);
+        if (setAdminToken) {
+          setAdminToken(response.data.token);
+        }
+        console.log("Token stored, navigating to device-a");
+        navigate("/device-a");
+      } else {
+        throw new Error("No token received in response");
+      }
+    } catch (error) {
+      console.error("Login error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        isAxiosError: error.isAxiosError,
+        isTimeout: error.code === 'ECONNABORTED'
+      });
+
+      let errorMessage = "Login failed. ";
+      if (error.response?.data?.error) {
+        errorMessage += error.response.data.error;
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage += "Request timed out. Please try again.";
+      } else if (error.isAxiosError && !error.response) {
+        errorMessage += "Network error. Please check your connection.";
+      } else {
+        errorMessage += "Please try again.";
       }
 
-      navigate("/device-a");
-    } catch (error) {
-      console.error("Login error:", error.response?.data || error);
-      setError(error.response?.data?.error || "Login failed. Please try again.");
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -70,6 +104,7 @@ const AdminLogin = ({ setAdminToken }) => {
           onChange={(e) => setEmail(e.target.value)}
           required
           className="auth-input"
+          disabled={loading}
         />
         <input
           type="password"
@@ -78,6 +113,7 @@ const AdminLogin = ({ setAdminToken }) => {
           onChange={(e) => setPassword(e.target.value)}
           required
           className="auth-input"
+          disabled={loading}
         />
         <button type="submit" className="auth-button" disabled={loading}>
           {loading ? "Logging in..." : "Login"}

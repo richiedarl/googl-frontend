@@ -1,4 +1,3 @@
-// DeviceA.js
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -10,8 +9,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Get stored values
-  const deviceId = localStorage.getItem("deviceId");
   const storedToken = initialAdminToken || localStorage.getItem("adminToken");
 
   const handleLogout = useCallback(() => {
@@ -28,36 +25,36 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       return;
     }
 
-    if (!deviceId) {
-      console.error("No deviceId found in localStorage");
-      handleLogout();
-      return;
-    }
-
     const fetchDevices = async () => {
       try {
         setLoading(true);
-        console.log("Fetching devices with token and deviceId:", { deviceId });
+        const token = storedToken;
+        console.log("Token being used:", token?.substring(0, 20) + "..."); // Only log first 20 chars for security
         
         const response = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
           {
             headers: {
-              Authorization: `Bearer ${storedToken}`,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           }
         );
-
-        console.log("Devices response:", response.data);
+    
+        console.log("Successful response:", response.data);
         setDevices(response.data?.devices || []);
         setError(null);
       } catch (error) {
-        console.error("Error fetching devices:", error.response || error);
+        console.error("Error details:", {
+          status: error.response?.status,
+          message: error.response?.data?.error,
+          fullError: error.response || error
+        });
         const errorMessage = error.response?.data?.error || "Failed to fetch devices";
         setError(errorMessage);
         
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.log("Auth error - redirecting to login");
           handleLogout();
         }
       } finally {
@@ -66,19 +63,15 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     };
 
     fetchDevices();
-  }, [storedToken, deviceId, navigate, handleLogout]);
+  }, [storedToken, navigate, handleLogout]);
 
   const loginAsDevice = async (device) => {
     try {
-      if (!deviceId) {
-        throw new Error("No deviceId found");
-      }
-
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
         {
           deviceBEmail: device.email,
-          deviceId: deviceId
+          deviceId: device.deviceId // Include deviceId if available but don't require it
         },
         {
           headers: {
@@ -88,7 +81,14 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
         }
       );
 
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(device.email)}&deviceId=${deviceId}`;
+      // Include deviceId in URL if available, but don't make it mandatory
+      const loginUrl = new URL("https://googl-backend.onrender.com/auth/login");
+      loginUrl.searchParams.set("email", device.email);
+      if (device.deviceId) {
+        loginUrl.searchParams.set("deviceId", device.deviceId);
+      }
+
+      window.location.href = loginUrl.toString();
     } catch (err) {
       console.error("Login error:", err.response || err);
       setError(`Failed to log in as device: ${err.response?.data?.error || err.message}`);
@@ -116,7 +116,13 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           <ul>
             {devices.map((device, index) => (
               <li key={device._id || index} className="device-item">
-                <span>{device.email || "Unknown Device"}</span>
+                <span>
+                  {device.email || "Unknown Device"}
+                  {device.name && ` (${device.name})`}
+                </span>
+                {device.deviceId && (
+                  <span className="device-id">ID: {device.deviceId}</span>
+                )}
                 <button 
                   className="login-button" 
                   onClick={() => loginAsDevice(device)}
