@@ -67,14 +67,14 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
 
   const loginAsDevice = async (device) => {
     try {
+      const storedToken = adminToken || localStorage.getItem("adminToken");
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
   
-      console.log("Attempting login for device:", device.email);
-  
+      // Call the login-to-device endpoint and get the deviceLoginToken
       const response = await axios.post(
-        "https://googl-backend.onrender.com/auth/login-to-device",
+        "https://googl-backend.onrender.com/auth/device-a/login-to-device",
         { deviceBEmail: device.email },
         {
           headers: {
@@ -84,20 +84,22 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
         }
       );
   
-      console.log("Login response:", response.data);
-  
-      if (response.data.redirectUrl) {
-        window.location.href = response.data.redirectUrl;
-      } else {
-        throw new Error("No redirect URL provided");
+      const { deviceLoginToken } = response.data;
+      if (!deviceLoginToken) {
+        throw new Error("No device login token received.");
       }
+  
+      // Optionally, store the deviceLoginToken (if needed for further auth on Device B side)
+      localStorage.setItem("deviceLoginToken", deviceLoginToken);
+  
+      // Redirect to the device dashboard (replace '/device-b-dashboard' with your actual route)
+      window.location.href = "/device-b-dashboard";
     } catch (err) {
       console.error("Error logging in as device:", err.response || err);
-      setError(
-        `Failed to log in as device: ${err.response?.data?.error || err.message}`
-      );
+      setError(`Failed to log in as device: ${err.response?.data?.error || err.message}`);
     }
   };
+  
 
   return (
     <div className="admin-container">
