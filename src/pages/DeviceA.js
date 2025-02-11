@@ -28,24 +28,33 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     const fetchDevices = async () => {
       try {
         setLoading(true);
+        const token = storedToken;
+        console.log("Token being used:", token?.substring(0, 20) + "..."); // Only log first 20 chars for security
+        
         const response = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
           {
             headers: {
-              Authorization: `Bearer ${storedToken}`,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           }
         );
-
+    
+        console.log("Successful response:", response.data);
         setDevices(response.data?.devices || []);
         setError(null);
       } catch (error) {
-        console.error("Error fetching devices:", error.response || error);
+        console.error("Error details:", {
+          status: error.response?.status,
+          message: error.response?.data?.error,
+          fullError: error.response || error
+        });
         const errorMessage = error.response?.data?.error || "Failed to fetch devices";
         setError(errorMessage);
         
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.log("Auth error - redirecting to login");
           handleLogout();
         }
       } finally {
