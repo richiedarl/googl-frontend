@@ -70,11 +70,11 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
-
+  
       console.log("Attempting login for device:", device.email);
-
-      await axios.post(
-        "https://googl-backend.onrender.com/auth/device-a/login-to-device",
+  
+      const response = await axios.post(
+        "https://googl-backend.onrender.com/auth/login-to-device",
         { deviceBEmail: device.email },
         {
           headers: {
@@ -83,10 +83,14 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           },
         }
       );
-
-      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(
-        device.email
-      )}`;
+  
+      console.log("Login response:", response.data);
+  
+      if (response.data.redirectUrl) {
+        window.location.href = response.data.redirectUrl;
+      } else {
+        throw new Error("No redirect URL provided");
+      }
     } catch (err) {
       console.error("Error logging in as device:", err.response || err);
       setError(
