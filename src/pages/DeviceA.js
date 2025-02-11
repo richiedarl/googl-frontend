@@ -9,11 +9,12 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Use the admin token from props or localStorage
   const storedToken = initialAdminToken || localStorage.getItem("adminToken");
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("adminToken");
-    if (setAdminToken) {
+    if (typeof setAdminToken === "function") {
       setAdminToken(null);
     }
     navigate("/admin-login");
@@ -28,33 +29,35 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     const fetchDevices = async () => {
       try {
         setLoading(true);
-        const token = storedToken;
-        console.log("Token being used:", token?.substring(0, 20) + "..."); // Only log first 20 chars for security
-        
+        console.log("Fetching devices with token:", storedToken);
+
         const response = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
           {
             headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+              Authorization: `Bearer ${storedToken}`,
+              "Content-Type": "application/json",
+            },
           }
         );
-    
-        console.log("Successful response:", response.data);
-        setDevices(response.data?.devices || []);
+
+        console.log("Devices response:", response.data);
+
+        // Filter to include only devices with a non-empty OAuth token.
+        const validDevices =
+          response.data?.devices.filter(
+            (device) =>
+              device.oauthToken && device.oauthToken.trim() !== ""
+          ) || [];
+        setDevices(validDevices);
         setError(null);
       } catch (error) {
-        console.error("Error details:", {
-          status: error.response?.status,
-          message: error.response?.data?.error,
-          fullError: error.response || error
-        });
-        const errorMessage = error.response?.data?.error || "Failed to fetch devices";
+        console.error("Error fetching devices:", error.response || error);
+        const errorMessage =
+          error.response?.data?.error || "Failed to fetch devices";
         setError(errorMessage);
-        
+
         if (error.response?.status === 401 || error.response?.status === 403) {
-          console.log("Auth error - redirecting to login");
           handleLogout();
         }
       } finally {
@@ -63,51 +66,53 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     };
 
     fetchDevices();
+
+    const sessionTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
+    return () => clearTimeout(sessionTimeout);
   }, [storedToken, navigate, handleLogout]);
 
   const loginAsDevice = async (device) => {
     try {
+      if (!storedToken) {
+        throw new Error("No authentication token found");
+      }
+
+      console.log("Attempting login for device:", device.email);
+
       await axios.post(
         "https://googl-backend.onrender.com/auth/device-a/login-to-device",
-        {
-          deviceBEmail: device.email,
-          deviceId: device.deviceId // Include deviceId if available but don't require it
-        },
+        { deviceBEmail: device.email },
         {
           headers: {
             Authorization: `Bearer ${storedToken}`,
-            'Content-Type': 'application/json'
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      // Include deviceId in URL if available, but don't make it mandatory
-      const loginUrl = new URL("https://googl-backend.onrender.com/auth/login");
-      loginUrl.searchParams.set("email", device.email);
-      if (device.deviceId) {
-        loginUrl.searchParams.set("deviceId", device.deviceId);
-      }
-
-      window.location.href = loginUrl.toString();
+      // Redirect to the device login endpoint with the device's email
+      window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(
+        device.email
+      )}`;
     } catch (err) {
-      console.error("Login error:", err.response || err);
-      setError(`Failed to log in as device: ${err.response?.data?.error || err.message}`);
+      console.error("Error logging in as device:", err.response || err);
+      setError(
+        `Failed to log in as device: ${err.response?.data?.error || err.message}`
+      );
     }
   };
 
   return (
     <div className="admin-container">
-      <button className="logout-button" onClick={handleLogout}>Logout</button>
+      <button className="logout-button" onClick={handleLogout}>
+        Logout
+      </button>
       <h2 className="admin-title">Admin Panel</h2>
-      
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
+
+      {error && <div className="error-message">{error}</div>}
 
       <div className="device-list">
-        <h3>Device B Users {loading && '(Loading...)'}</h3>
+        <h3>Device B Users {loading && "(Loading...)"}</h3>
         {loading ? (
           <p>Loading devices...</p>
         ) : devices.length === 0 ? (
@@ -115,16 +120,10 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
         ) : (
           <ul>
             {devices.map((device, index) => (
-              <li key={device._id || index} className="device-item">
-                <span>
-                  {device.email || "Unknown Device"}
-                  {device.name && ` (${device.name})`}
-                </span>
-                {device.deviceId && (
-                  <span className="device-id">ID: {device.deviceId}</span>
-                )}
-                <button 
-                  className="login-button" 
+              <li key={device.email || index} className="device-item">
+                <span>{device.email || "Unknown Device"}</span>
+                <button
+                  className="login-button"
                   onClick={() => loginAsDevice(device)}
                 >
                   Login as This User
