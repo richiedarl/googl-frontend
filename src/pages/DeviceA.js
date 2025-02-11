@@ -9,7 +9,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Use the admin token from props or localStorage
   const storedToken = initialAdminToken || localStorage.getItem("adminToken");
 
   const handleLogout = useCallback(() => {
@@ -43,13 +42,8 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
 
         console.log("Devices response:", response.data);
 
-        // Filter to include only devices with a non-empty OAuth token.
-        const validDevices =
-          response.data?.devices.filter(
-            (device) =>
-              device.oauthToken && device.oauthToken.trim() !== ""
-          ) || [];
-        setDevices(validDevices);
+        // No filtering needed as backend handles it
+        setDevices(response.data?.devices || []);
         setError(null);
       } catch (error) {
         console.error("Error fetching devices:", error.response || error);
@@ -90,7 +84,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
         }
       );
 
-      // Redirect to the device login endpoint with the device's email
       window.location.href = `https://googl-backend.onrender.com/auth/login?email=${encodeURIComponent(
         device.email
       )}`;
@@ -118,19 +111,22 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
         ) : devices.length === 0 ? (
           <p className="no-devices">No Device B users found.</p>
         ) : (
-          <ul>
-            {devices.map((device, index) => (
-              <li key={device.email || index} className="device-item">
-                <span>{device.email || "Unknown Device"}</span>
-                <button
-                  className="login-button"
-                  onClick={() => loginAsDevice(device)}
-                >
-                  Login as This User
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p>Total devices found: {devices.length}</p>
+            <ul>
+              {devices.map((device, index) => (
+                <li key={device.email || index} className="device-item">
+                  <span>{device.email || "Unknown Device"}</span>
+                  <button
+                    className="login-button"
+                    onClick={() => loginAsDevice(device)}
+                  >
+                    Login as This User
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>
