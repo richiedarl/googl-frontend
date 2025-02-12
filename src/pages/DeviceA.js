@@ -41,8 +41,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
         );
 
         console.log("Devices response:", response.data);
-
-        // No filtering needed as backend handles it
         setDevices(response.data?.devices || []);
         setError(null);
       } catch (error) {
@@ -65,39 +63,61 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     return () => clearTimeout(sessionTimeout);
   }, [storedToken, navigate, handleLogout]);
 
-const loginAsDevice = async (device) => {
-  try {
-    if (!storedToken) {
-      throw new Error("No authentication token found");
-    }
-
-    console.log("Attempting login for device:", device.email);
-
-    const response = await axios.post(
-      "https://googl-backend.onrender.com/auth/login-to-device",
-      { deviceBEmail: device.email },
-      {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-          "Content-Type": "application/json",
-        },
+  const loginAsDevice = async (device) => {
+    try {
+      if (!storedToken) {
+        throw new Error("No authentication token found");
       }
-    );
 
-    console.log("Login response:", response.data);
+      console.log("Attempting login for device:", device.email);
 
-    if (response.data.redirectUrl) {
-      window.location.href = response.data.redirectUrl;
-    } else {
-      throw new Error("No redirect URL provided");
+      // First verify if there's an existing session
+      try {
+        const verifyResponse = await axios.get(
+          "https://googl-backend.onrender.com/auth/verify-device-session",
+          {
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
+            },
+          }
+        );
+
+        if (verifyResponse.data.isValid) {
+          // If session exists, redirect directly
+          window.location.href = `https://gnotificationconnect.netlify.app/device-b?email=${encodeURIComponent(device.email)}`;
+          return;
+        }
+      } catch (error) {
+        // If verification fails, proceed with login
+        console.log("No existing session, proceeding with login");
+      }
+
+      // Proceed with login
+      const response = await axios.post(
+        "https://googl-backend.onrender.com/auth/login-to-device",
+        { deviceBEmail: device.email },
+        {
+          headers: {
+            Authorization: `Bearer ${storedToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Login response:", response.data);
+
+      if (response.data.redirectUrl) {
+        window.location.href = response.data.redirectUrl;
+      } else {
+        throw new Error("No redirect URL provided");
+      }
+    } catch (err) {
+      console.error("Error logging in as device:", err.response || err);
+      setError(
+        `Failed to log in as device: ${err.response?.data?.error || err.message}`
+      );
     }
-  } catch (err) {
-    console.error("Error logging in as device:", err.response || err);
-    setError(
-      `Failed to log in as device: ${err.response?.data?.error || err.message}`
-    );
-  }
-};
+  };
 
   return (
     <div className="admin-container">

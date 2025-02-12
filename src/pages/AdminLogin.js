@@ -46,7 +46,7 @@ const AdminLogin = ({ setAdminToken }) => {
           headers: { 
             "Content-Type": "application/json"
           },
-          timeout: 10000 // 10 second timeout
+          timeout: 15000 // 15 second timeout
         }
       );
 
