@@ -96,7 +96,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       );
     }
   };
-
+  
   return (
     <div className="admin-container">
       <button className="logout-button" onClick={handleLogout}>
