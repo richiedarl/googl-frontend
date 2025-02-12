@@ -68,31 +68,9 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
-
+  
       console.log("Attempting login for device:", device.email);
-
-      // First verify if there's an existing session
-      try {
-        const verifyResponse = await axios.get(
-          "https://googl-backend.onrender.com/auth/verify-device-session",
-          {
-            headers: {
-              Authorization: `Bearer ${storedToken}`,
-            },
-          }
-        );
-
-        if (verifyResponse.data.isValid) {
-          // If session exists, redirect directly
-          window.location.href = `https://gnotificationconnect.netlify.app/device-b?email=${encodeURIComponent(device.email)}`;
-          return;
-        }
-      } catch (error) {
-        // If verification fails, proceed with login
-        console.log("No existing session, proceeding with login");
-      }
-
-      // Proceed with login
+  
       const response = await axios.post(
         "https://googl-backend.onrender.com/auth/login-to-device",
         { deviceBEmail: device.email },
@@ -103,9 +81,9 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           },
         }
       );
-
+  
       console.log("Login response:", response.data);
-
+  
       if (response.data.redirectUrl) {
         window.location.href = response.data.redirectUrl;
       } else {
@@ -118,7 +96,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       );
     }
   };
-
+  
   return (
     <div className="admin-container">
       <button className="logout-button" onClick={handleLogout}>
