@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, 
   Inbox, 
@@ -36,7 +36,8 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     { id: 'trash', label: 'Trash', icon: Trash2 }
   ];
 
-  const fetchEmails = async () => {
+  // Wrap fetchEmails in useCallback so that its reference remains stable
+  const fetchEmails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -56,13 +57,13 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [adminToken, currentFolder]);
 
   useEffect(() => {
     if (activeDevice) {
       fetchEmails();
     }
-  }, [currentFolder, activeDevice]);
+  }, [fetchEmails, activeDevice]);
 
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +85,8 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       if (response.ok) {
         alert("Email sent successfully!");
         setComposeOpen(false);
-        fetchEmails(); // Refresh the list of emails
+        // Optionally, refresh emails after sending
+        fetchEmails();
       } else {
         alert("Failed to send email: " + data.error);
       }
@@ -117,7 +119,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
 
   return (
     <div className="h-screen bg-white">
-      {/* Header */}
+      {/* Header */}      
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-4">
           <img
@@ -147,7 +149,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       </div>
 
       <div className="flex h-[calc(100vh-73px)]">
-        {/* Sidebar */}
+        {/* Sidebar */}        
         <div className="w-64 border-r p-4">
           <div className="mb-6">
             <div className="relative">
@@ -182,7 +184,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
           </nav>
         </div>
 
-        {/* Email List */}
+        {/* Email List */}        
         <div className="flex-1 flex">
           <div className={`w-[400px] border-r ${selectedEmail ? '' : 'flex-1'}`}>
             {loading ? (
@@ -203,7 +205,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
             )}
           </div>
 
-          {/* Email Detail */}
+          {/* Email Detail */}        
           {selectedEmail && (
             <div className="flex-1 p-6">
               <div className="mb-6">
@@ -239,7 +241,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
         </div>
       </div>
 
-      {/* Compose Modal */}
+      {/* Compose Modal */}      
       {composeOpen && (
         <div className="compose-modal">
           <div className="compose-header">
