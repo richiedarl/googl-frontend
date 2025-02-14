@@ -84,8 +84,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       if (response.ok) {
         alert("Email sent successfully!");
         setComposeOpen(false);
-        // Optionally, refresh emails after sending
-        fetchEmails();
+        fetchEmails(); // Refresh the list of emails
       } else {
         alert("Failed to send email: " + data.error);
       }
@@ -118,7 +117,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
 
   return (
     <div className="h-screen bg-white">
-      {/* Header */}      
+      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-4">
           <img
@@ -148,7 +147,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       </div>
 
       <div className="flex h-[calc(100vh-73px)]">
-        {/* Sidebar */}        
+        {/* Sidebar */}
         <div className="w-64 border-r p-4">
           <div className="mb-6">
             <div className="relative">
@@ -183,7 +182,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
           </nav>
         </div>
 
-        {/* Email List */}        
+        {/* Email List */}
         <div className="flex-1 flex">
           <div className={`w-[400px] border-r ${selectedEmail ? '' : 'flex-1'}`}>
             {loading ? (
@@ -204,7 +203,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
             )}
           </div>
 
-          {/* Email Detail */}        
+          {/* Email Detail */}
           {selectedEmail && (
             <div className="flex-1 p-6">
               <div className="mb-6">
@@ -240,7 +239,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
         </div>
       </div>
 
-      {/* Compose Modal */}      
+      {/* Compose Modal */}
       {composeOpen && (
         <div className="compose-modal">
           <div className="compose-header">
