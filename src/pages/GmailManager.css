@@ -1,0 +1,189 @@
+/* GmailManager.css */
+
+/* General Styles */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #f7f9fc;
+  }
+  
+  .h-screen {
+    height: 100vh;
+  }
+  
+  /* Container for Gmail Manager */
+  .gmail-manager {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .header .profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .header .profile img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+  
+  .header button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  /* Main Content Area */
+  .main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  /* Sidebar */
+  .sidebar {
+    width: 250px;
+    background-color: #fff;
+    border-right: 1px solid #e0e0e0;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+  
+  .sidebar input[type="text"] {
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+  
+  .sidebar nav button {
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+  
+  .sidebar nav button:hover,
+  .sidebar nav button.active {
+    background-color: #e8f0fe;
+    color: #1967d2;
+  }
+  
+  /* Email List */
+  .email-list {
+    width: 400px;
+    border-right: 1px solid #e0e0e0;
+    overflow-y: auto;
+    background-color: #fff;
+  }
+  
+  .email-list .email-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #f1f3f4;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .email-list .email-item:hover {
+    background-color: #f1f3f4;
+  }
+  
+  .email-list .email-item.selected {
+    background-color: #e8f0fe;
+  }
+  
+  /* Email Detail */
+  .email-detail {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background-color: #fff;
+  }
+  
+  /* Compose Modal */
+  .compose-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .compose-modal .compose-content {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  
+  .compose-modal .compose-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .compose-modal .compose-form input,
+  .compose-modal .compose-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  .compose-modal .compose-form button {
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .compose-modal .compose-form button[type="submit"] {
+    background-color: #1967d2;
+    color: #fff;
+  }
+  
+  .compose-modal .compose-form button[type="button"] {
+    background-color: #e0e0e0;
+    color: #333;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 200px;
+    }
+    .email-list {
+      width: 300px;
+    }
+  }
+  
