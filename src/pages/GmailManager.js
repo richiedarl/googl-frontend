@@ -12,7 +12,7 @@ import {
   MoreVertical,
   Clock
 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+// import { useLocation } from 'react-router-dom';
 import "./GmailManager.css";
 
 const GmailManager = ({ activeDevice, adminToken }) => {
