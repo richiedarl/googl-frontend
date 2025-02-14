@@ -5,6 +5,7 @@ import AdminRegister from "./pages/AdminRegister";
 import DeviceA from "./pages/DeviceA";
 import DeviceBLogin from "./pages/DeviceB";
 import DeviceBDashboard from "./pages/DeviceBDashboard";
+import GmailManager from "./pages/GmailManager";
 
 function App() {
   const [adminToken, setAdminToken] = useState(localStorage.getItem("adminToken"));
@@ -27,6 +28,7 @@ function App() {
 
         {/* Device B Dashboard (After Successful Login) */}
         <Route path="/device-b" element={<DeviceBDashboard />} />
+        <Route path="/gmail-manager" element={<GmailManager />} />
       </Routes>
     </Router>
   );

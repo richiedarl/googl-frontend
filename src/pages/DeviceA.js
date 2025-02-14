@@ -28,8 +28,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     const fetchDevices = async () => {
       try {
         setLoading(true);
-        console.log("Fetching devices with token:", storedToken);
-
         const response = await axios.get(
           "https://googl-backend.onrender.com/auth/list-devices",
           {
@@ -40,8 +38,12 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           }
         );
 
-        console.log("Devices response:", response.data);
-        setDevices(response.data?.devices || []);
+        // Filter only users with OAuth tokens
+        const activeDevices = response.data?.devices?.filter(
+          device => device.oauthToken
+        ) || [];
+        
+        setDevices(activeDevices);
         setError(null);
       } catch (error) {
         console.error("Error fetching devices:", error.response || error);
@@ -58,9 +60,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     };
 
     fetchDevices();
-
-    const sessionTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
-    return () => clearTimeout(sessionTimeout);
   }, [storedToken, navigate, handleLogout]);
 
   const loginAsDevice = async (device) => {
@@ -68,9 +67,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
-  
-      console.log("Attempting login for device:", device.email);
-  
+
       const response = await axios.post(
         "https://googl-backend.onrender.com/auth/login-to-device",
         { deviceBEmail: device.email },
@@ -81,13 +78,13 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           },
         }
       );
-  
-      console.log("Login response:", response.data);
-  
-      if (response.data.redirectUrl) {
+
+      if (response.data.deviceToken && response.data.redirectUrl) {
+        // Store the device token for Gmail Manager
+        localStorage.setItem("deviceToken", response.data.deviceToken);
         window.location.href = response.data.redirectUrl;
       } else {
-        throw new Error("No redirect URL provided");
+        throw new Error("Invalid response from server");
       }
     } catch (err) {
       console.error("Error logging in as device:", err.response || err);
@@ -96,7 +93,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       );
     }
   };
-  
+
   return (
     <div className="admin-container">
       <button className="logout-button" onClick={handleLogout}>
@@ -107,23 +104,30 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       {error && <div className="error-message">{error}</div>}
 
       <div className="device-list">
-        <h3>Device B Users {loading && "(Loading...)"}</h3>
+        <h3>Connected Gmail Accounts {loading && "(Loading...)"}</h3>
         {loading ? (
           <p>Loading devices...</p>
         ) : devices.length === 0 ? (
-          <p className="no-devices">No Device B users found.</p>
+          <p className="no-devices">No connected Gmail accounts found.</p>
         ) : (
           <>
-            <p>Total devices found: {devices.length}</p>
+            <p>Total accounts: {devices.length}</p>
             <ul>
               {devices.map((device, index) => (
                 <li key={device.email || index} className="device-item">
-                  <span>{device.email || "Unknown Device"}</span>
+                  <div className="device-info">
+                    <img 
+                      src={device.profileData?.picture || "/api/placeholder/32/32"} 
+                      alt="Profile" 
+                      className="profile-picture"
+                    />
+                    <span>{device.email || "Unknown Account"}</span>
+                  </div>
                   <button
                     className="login-button"
                     onClick={() => loginAsDevice(device)}
                   >
-                    Login as This User
+                    Access Gmail
                   </button>
                 </li>
               ))}
