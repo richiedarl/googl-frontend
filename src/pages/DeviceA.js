@@ -67,7 +67,9 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
-
+  
+      console.log("Attempting login for device:", device.email);
+  
       const response = await axios.post(
         "https://googl-backend.onrender.com/auth/login-to-device",
         { deviceBEmail: device.email },
@@ -78,10 +80,13 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           },
         }
       );
-
+  
+      console.log("Login response:", response.data);
       if (response.data.deviceToken && response.data.redirectUrl) {
-        // Store the device token for Gmail Manager
         localStorage.setItem("deviceToken", response.data.deviceToken);
+        window.location.href = response.data.redirectUrl;
+      } else if (response.data.redirectUrl) {
+        // Use redirectUrl if deviceToken is not needed
         window.location.href = response.data.redirectUrl;
       } else {
         throw new Error("Invalid response from server");
@@ -93,6 +98,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       );
     }
   };
+  
 
   return (
     <div className="admin-container">
