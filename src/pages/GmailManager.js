@@ -10,10 +10,19 @@ import {
   Mail,
   Paperclip,
   MoreVertical,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
-// import { useLocation } from 'react-router-dom';
-import "./GmailManager.css";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
 
 const GmailManager = ({ activeDevice, adminToken }) => {
   const [emails, setEmails] = useState([]);
@@ -21,12 +30,14 @@ const GmailManager = ({ activeDevice, adminToken }) => {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('inbox');
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
   
   // State for compose modal
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeTo, setComposeTo] = useState('');
   const [composeSubject, setComposeSubject] = useState('');
   const [composeBody, setComposeBody] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   
   const folders = [
     { id: 'inbox', label: 'Inbox', icon: Inbox },
@@ -36,12 +47,19 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     { id: 'trash', label: 'Trash', icon: Trash2 }
   ];
 
-  // Wrap fetchEmails in useCallback so that its reference remains stable
   const fetchEmails = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      if (!adminToken) {
+        throw new Error('No authentication token provided');
+      }
+
       const response = await fetch(
-        `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}`,
+        `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
+          searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
+        }`,
         {
           headers: {
             Authorization: `Bearer ${adminToken}`,
@@ -49,24 +67,42 @@ const GmailManager = ({ activeDevice, adminToken }) => {
         }
       );
       
-      if (!response.ok) throw new Error('Failed to fetch emails');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch emails');
+      }
+      
       const data = await response.json();
       setEmails(data.messages || []);
     } catch (error) {
       console.error('Error fetching emails:', error);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
-  }, [adminToken, currentFolder]);
+  }, [adminToken, currentFolder, searchQuery]);
 
   useEffect(() => {
-    if (activeDevice) {
+    if (activeDevice && adminToken) {
       fetchEmails();
     }
-  }, [fetchEmails, activeDevice]);
+  }, [fetchEmails, activeDevice, adminToken]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        fetchEmails();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, fetchEmails]);
 
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
+    setSendingEmail(true);
+    
     try {
       const response = await fetch("https://googl-backend.onrender.com/api/device/gmail/send", {
         method: "POST",
@@ -81,31 +117,45 @@ const GmailManager = ({ activeDevice, adminToken }) => {
           body: composeBody
         })
       });
+      
       const data = await response.json();
-      if (response.ok) {
-        alert("Email sent successfully!");
-        setComposeOpen(false);
-        // Optionally, refresh emails after sending
-        fetchEmails();
-      } else {
-        alert("Failed to send email: " + data.error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send email');
       }
+      
+      setComposeOpen(false);
+      resetComposeForm();
+      fetchEmails();
     } catch (error) {
       console.error("Send Email Error:", error);
-      alert("Error sending email");
+      setError(error.message);
+    } finally {
+      setSendingEmail(false);
     }
+  };
+
+  const resetComposeForm = () => {
+    setComposeTo('');
+    setComposeSubject('');
+    setComposeBody('');
   };
 
   const EmailListItem = ({ email }) => (
     <div 
-      className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b ${selectedEmail?.id === email.id ? 'bg-blue-50' : ''}`}
+      className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b ${
+        selectedEmail?.id === email.id ? 'bg-blue-50' : ''
+      }`}
       onClick={() => setSelectedEmail(email)}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium truncate">{email.from}</span>
           <span className="text-sm text-gray-500">
-            {new Date(email.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(email.date).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            })}
           </span>
         </div>
         <div className="font-medium truncate">{email.subject}</div>
@@ -133,30 +183,45 @@ const GmailManager = ({ activeDevice, adminToken }) => {
           </div>
         </div>
         <div className="flex gap-2">
-          <button 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={fetchEmails}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            disabled={loading}
           >
-            <RefreshCw className="w-5 h-5" />
-          </button>
-          <button 
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="default"
             onClick={() => setComposeOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-full"
           >
             Compose
-          </button>
+          </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 flex justify-between items-center">
+          <span>{error}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setError(null)}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       <div className="flex h-[calc(100vh-73px)]">
         {/* Sidebar */}        
         <div className="w-64 border-r p-4">
           <div className="mb-6">
             <div className="relative">
-              <input
+              <Input
                 type="text"
                 placeholder="Search emails..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -227,9 +292,12 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                     <span className="text-sm">
                       {new Date(selectedEmail.date).toLocaleString()}
                     </span>
-                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                    >
                       <MoreVertical className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -242,38 +310,54 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       </div>
 
       {/* Compose Modal */}      
-      {composeOpen && (
-        <div className="compose-modal">
-          <div className="compose-header">
-            <h3>Compose Email</h3>
-            <button onClick={() => setComposeOpen(false)}>Close</button>
-          </div>
-          <form onSubmit={handleComposeSubmit} className="compose-form">
-            <input
+      <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Compose Email</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleComposeSubmit} className="space-y-4">
+            <Input
               type="email"
               placeholder="To"
               value={composeTo}
               onChange={(e) => setComposeTo(e.target.value)}
               required
             />
-            <input
+            <Input
               type="text"
               placeholder="Subject"
               value={composeSubject}
               onChange={(e) => setComposeSubject(e.target.value)}
               required
             />
-            <textarea
+            <Textarea
               placeholder="Write your message..."
               value={composeBody}
               onChange={(e) => setComposeBody(e.target.value)}
+              className="min-h-[200px]"
               required
-            ></textarea>
-            <button type="submit">Send</button>
-            <button type="button" onClick={() => setComposeOpen(false)}>Cancel</button>
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setComposeOpen(false);
+                  resetComposeForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={sendingEmail}
+              >
+                {sendingEmail ? 'Sending...' : 'Send'}
+              </Button>
+            </DialogFooter>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

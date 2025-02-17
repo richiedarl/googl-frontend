@@ -82,14 +82,12 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       );
   
       console.log("Login response:", response.data);
-      if (response.data.deviceToken && response.data.redirectUrl) {
-        localStorage.setItem("deviceToken", response.data.deviceToken);
-        window.location.href = response.data.redirectUrl;
-      } else if (response.data.redirectUrl) {
-        // Use redirectUrl if deviceToken is not needed
+      
+      // Since we're getting a URL back, simply redirect
+      if (response.data.redirectUrl) {
         window.location.href = response.data.redirectUrl;
       } else {
-        throw new Error("Invalid response from server");
+        throw new Error("No redirect URL received from server");
       }
     } catch (err) {
       console.error("Error logging in as device:", err.response || err);
@@ -99,7 +97,6 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     }
   };
   
-
   return (
     <div className="admin-container">
       <button className="logout-button" onClick={handleLogout}>
