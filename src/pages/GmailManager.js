@@ -11,10 +11,10 @@ import {
   Paperclip,
   MoreVertical,
   Clock,
-  X,
-  AlertCircle
+  X
 } from 'lucide-react';
 import PropTypes from 'prop-types';
+import "./GmailManager.css";
 
 const folders = [
   { id: 'inbox', label: 'Inbox', icon: Inbox },
@@ -49,26 +49,28 @@ const formatDate = (dateString) => {
 };
 
 const GmailManager = ({ activeDevice, adminToken }) => {
-  // All useState hooks at the top
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('inbox');
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
+  
+  // State for compose modal
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeTo, setComposeTo] = useState('');
   const [composeSubject, setComposeSubject] = useState('');
   const [composeBody, setComposeBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  // useCallback hook at the top level
   const fetchEmails = useCallback(async () => {
-    if (!activeDevice || !adminToken) return;
-
     try {
       setLoading(true);
       setError(null);
+      
+      if (!adminToken) {
+        throw new Error('No authentication token provided');
+      }
       
       const response = await fetch(
         `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
@@ -95,36 +97,17 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     } finally {
       setLoading(false);
     }
-  }, [adminToken, currentFolder, searchQuery, activeDevice]);
+  }, [adminToken, currentFolder, searchQuery]);
 
-  // useEffect hook at the top level
   useEffect(() => {
     if (activeDevice && adminToken) {
       fetchEmails();
     }
   }, [fetchEmails, activeDevice, adminToken]);
 
-  // Early return for invalid props
-  if (!activeDevice || !adminToken) {
-    return (
-      <div className="gmail-error-container">
-        <AlertCircle className="error-icon" />
-        <h2>Configuration Error</h2>
-        <p>Missing required authentication or device information.</p>
-      </div>
-    );
-  }
-
-  const resetComposeForm = () => {
-    setComposeTo('');
-    setComposeSubject('');
-    setComposeBody('');
-  };
-
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
     setSendingEmail(true);
-    
     try {
       const response = await fetch("https://googl-backend.onrender.com/api/device/gmail/send", {
         method: "POST",
@@ -145,19 +128,22 @@ const GmailManager = ({ activeDevice, adminToken }) => {
         throw new Error(data.error || 'Failed to send email');
       }
       
+      alert("Email sent successfully!");
       setComposeOpen(false);
       resetComposeForm();
-      setError({ message: "Email sent successfully!", type: 'success' });
-      
-      if (currentFolder === 'sent') {
-        fetchEmails();
-      }
+      fetchEmails(); // Refresh the email list after sending
     } catch (error) {
       console.error("Send Email Error:", error);
-      setError({ message: error.message, type: 'error' });
+      setError(error.message);
     } finally {
       setSendingEmail(false);
     }
+  };
+
+  const resetComposeForm = () => {
+    setComposeTo('');
+    setComposeSubject('');
+    setComposeBody('');
   };
 
   const EmailListItem = ({ email }) => (
@@ -213,7 +199,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
 
       {error && (
         <div className={`notification ${error.type}`}>
-          <span>{error.message}</span>
+          <span>{error}</span>
           <button
             onClick={() => setError(null)}
             className="notification-close"
@@ -234,7 +220,9 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                 className="search-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchEmails()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') fetchEmails();
+                }}
               />
             </div>
           </div>
@@ -248,9 +236,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                     setCurrentFolder(folder.id);
                     setSelectedEmail(null);
                   }}
-                  className={`folder-button ${
-                    currentFolder === folder.id ? 'active-folder' : ''
-                  }`}
+                  className={`folder-button ${currentFolder === folder.id ? 'active-folder' : ''}`}
                 >
                   <Icon className="folder-icon" />
                   <span>{folder.label}</span>
@@ -293,12 +279,8 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                       className="sender-avatar"
                     />
                     <div className="sender-details">
-                      <div className="sender-name">
-                        {selectedEmail.from.split('<')[0].trim()}
-                      </div>
-                      <div className="sender-email">
-                        {selectedEmail.from.match(/<(.+)>/)?.[1] || selectedEmail.from}
-                      </div>
+                      <div className="sender-name">{selectedEmail.from.split('<')[0].trim()}</div>
+                      <div className="sender-email">{selectedEmail.from.match(/<(.+)>/)?.[1] || selectedEmail.from}</div>
                     </div>
                   </div>
                   <div className="email-actions">
@@ -307,7 +289,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                       <span>{new Date(selectedEmail.date).toLocaleString()}</span>
                     </div>
                     <button className="more-actions-button">
-                      <MoreVertical />
+                      <MoreVertical className="more-actions-icon" />
                     </button>
                   </div>
                 </div>
@@ -316,7 +298,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                 {selectedEmail.snippet}
                 {selectedEmail.hasAttachment && (
                   <div className="attachment-notice">
-                    <Paperclip />
+                    <Paperclip className="attachment-icon" />
                     <span>This email has attachments</span>
                   </div>
                 )}
@@ -379,7 +361,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
                   value={composeBody}
                   onChange={(e) => setComposeBody(e.target.value)}
                   required
-                />
+                ></textarea>
               </div>
               <div className="compose-actions">
                 <button
