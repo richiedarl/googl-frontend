@@ -11,42 +11,65 @@ import {
   Paperclip,
   MoreVertical,
   Clock,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
+import PropTypes from 'prop-types';
+
+const folders = [
+  { id: 'inbox', label: 'Inbox', icon: Inbox },
+  { id: 'starred', label: 'Starred', icon: Star },
+  { id: 'sent', label: 'Sent', icon: Send },
+  { id: 'archived', label: 'Archive', icon: Archive },
+  { id: 'trash', label: 'Trash', icon: Trash2 }
+];
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+  
+  const weekAgo = new Date(now);
+  weekAgo.setDate(now.getDate() - 7);
+  if (date > weekAgo) {
+    return date.toLocaleDateString([], { weekday: 'short' });
+  }
+  
+  return date.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric'
+  });
+};
 
 const GmailManager = ({ activeDevice, adminToken }) => {
+  // All useState hooks at the top
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('inbox');
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
-  
-  // State for compose modal
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeTo, setComposeTo] = useState('');
   const [composeSubject, setComposeSubject] = useState('');
   const [composeBody, setComposeBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
-  
-  const folders = [
-    { id: 'inbox', label: 'Inbox', icon: Inbox },
-    { id: 'starred', label: 'Starred', icon: Star },
-    { id: 'sent', label: 'Sent', icon: Send },
-    { id: 'archived', label: 'Archive', icon: Archive },
-    { id: 'trash', label: 'Trash', icon: Trash2 }
-  ];
 
-  // Rest of the fetch emails logic remains the same
+  // useCallback hook at the top level
   const fetchEmails = useCallback(async () => {
+    if (!activeDevice || !adminToken) return;
+
     try {
       setLoading(true);
       setError(null);
       
-      if (!adminToken) {
-        throw new Error('No authentication token provided');
-      }
-
       const response = await fetch(
         `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
           searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
@@ -54,6 +77,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
         {
           headers: {
             Authorization: `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
           },
         }
       );
@@ -71,13 +95,31 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     } finally {
       setLoading(false);
     }
-  }, [adminToken, currentFolder, searchQuery]);
+  }, [adminToken, currentFolder, searchQuery, activeDevice]);
 
+  // useEffect hook at the top level
   useEffect(() => {
     if (activeDevice && adminToken) {
       fetchEmails();
     }
   }, [fetchEmails, activeDevice, adminToken]);
+
+  // Early return for invalid props
+  if (!activeDevice || !adminToken) {
+    return (
+      <div className="gmail-error-container">
+        <AlertCircle className="error-icon" />
+        <h2>Configuration Error</h2>
+        <p>Missing required authentication or device information.</p>
+      </div>
+    );
+  }
+
+  const resetComposeForm = () => {
+    setComposeTo('');
+    setComposeSubject('');
+    setComposeBody('');
+  };
 
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
@@ -105,72 +147,64 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       
       setComposeOpen(false);
       resetComposeForm();
-      fetchEmails();
+      setError({ message: "Email sent successfully!", type: 'success' });
+      
+      if (currentFolder === 'sent') {
+        fetchEmails();
+      }
     } catch (error) {
       console.error("Send Email Error:", error);
-      setError(error.message);
+      setError({ message: error.message, type: 'error' });
     } finally {
       setSendingEmail(false);
     }
   };
 
-  const resetComposeForm = () => {
-    setComposeTo('');
-    setComposeSubject('');
-    setComposeBody('');
-  };
-
   const EmailListItem = ({ email }) => (
     <div 
-      className="flex items-center p-4 hover:bg-gray-50 cursor-pointer border-b"
+      className={`email-list-item ${selectedEmail?.id === email.id ? 'selected' : ''}`}
       onClick={() => setSelectedEmail(email)}
     >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium truncate">{email.from}</span>
-          <span className="text-sm text-gray-500">
-            {new Date(email.date).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: true 
-            })}
-          </span>
+      <div className="email-content">
+        <div className="email-sender-time">
+          <span className="email-sender">{email.from.split('<')[0].trim()}</span>
+          <span className="email-time">{formatDate(email.date)}</span>
         </div>
-        <div className="font-medium truncate">{email.subject}</div>
-        <div className="text-sm text-gray-500 truncate">{email.snippet}</div>
+        <div className="email-subject">{email.subject}</div>
+        <div className="email-snippet">{email.snippet}</div>
       </div>
       {email.hasAttachment && (
-        <Paperclip className="w-4 h-4 text-gray-400 ml-2" />
+        <Paperclip className="email-attachment-icon" />
       )}
     </div>
   );
 
   return (
-    <div className="h-screen bg-white">
-      {/* Header */}      
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-4">
+    <div className="gmail-container">
+      <div className="gmail-header">
+        <div className="profile-info">
           <img
             src={activeDevice?.picture || "/api/placeholder/32/32"}
             alt="Profile"
-            className="w-8 h-8 rounded-full"
+            className="profile-picture"
           />
-          <div>
-            <div className="font-medium">{activeDevice?.name}</div>
-            <div className="text-sm text-gray-500">{activeDevice?.email}</div>
+          <div className="profile-details">
+            <div className="profile-name">{activeDevice?.name || 'User'}</div>
+            <div className="profile-email">{activeDevice?.email || 'No email'}</div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="header-actions">
           <button
             onClick={fetchEmails}
             disabled={loading}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50"
+            className="refresh-button"
+            title="Refresh"
           >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`refresh-icon ${loading ? 'spinning' : ''}`} />
           </button>
           <button
             onClick={() => setComposeOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="compose-button"
           >
             Compose
           </button>
@@ -178,46 +212,47 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 flex justify-between items-center">
-          <span>{error}</span>
+        <div className={`notification ${error.type}`}>
+          <span>{error.message}</span>
           <button
             onClick={() => setError(null)}
-            className="p-1 hover:bg-red-100 rounded-full"
+            className="notification-close"
           >
-            <X className="w-4 h-4" />
+            <X size={16} />
           </button>
         </div>
       )}
 
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* Sidebar */}        
-        <div className="w-64 border-r p-4">
-          <div className="mb-6">
-            <div className="relative">
+      <div className="gmail-content">
+        <div className="gmail-sidebar">
+          <div className="search-container">
+            <div className="search-input-wrapper">
+              <Search className="search-icon" />
               <input
                 type="text"
                 placeholder="Search emails..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                className="search-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchEmails()}
               />
-              <Search className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" />
             </div>
           </div>
-          <nav className="space-y-1">
+          <nav className="folder-navigation">
             {folders.map((folder) => {
               const Icon = folder.icon;
               return (
                 <button
                   key={folder.id}
-                  onClick={() => setCurrentFolder(folder.id)}
-                  className={`flex items-center gap-3 w-full p-2 rounded ${
-                    currentFolder === folder.id
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'hover:bg-gray-50'
+                  onClick={() => {
+                    setCurrentFolder(folder.id);
+                    setSelectedEmail(null);
+                  }}
+                  className={`folder-button ${
+                    currentFolder === folder.id ? 'active-folder' : ''
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="folder-icon" />
                   <span>{folder.label}</span>
                 </button>
               );
@@ -225,20 +260,20 @@ const GmailManager = ({ activeDevice, adminToken }) => {
           </nav>
         </div>
 
-        {/* Email List */}        
-        <div className="flex-1 flex">
-          <div className={`w-[400px] border-r ${selectedEmail ? '' : 'flex-1'}`}>
+        <div className="email-panel">
+          <div className={`email-list ${selectedEmail ? '' : 'full-width'}`}>
             {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+              <div className="loading-container">
+                <div className="loading-spinner" />
+                <span>Loading emails...</span>
               </div>
             ) : emails.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                <Mail className="w-12 h-12 mb-2" />
-                <p>No emails found</p>
+              <div className="empty-state">
+                <Mail className="empty-icon" />
+                <p>No emails found in {folders.find(f => f.id === currentFolder)?.label || currentFolder}</p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="email-list-container">
                 {emails.map((email) => (
                   <EmailListItem key={email.id} email={email} />
                 ))}
@@ -246,97 +281,121 @@ const GmailManager = ({ activeDevice, adminToken }) => {
             )}
           </div>
 
-          {/* Email Detail */}        
           {selectedEmail && (
-            <div className="flex-1 p-6">
-              <div className="mb-6">
-                <h2 className="text-2xl font-medium mb-2">{selectedEmail.subject}</h2>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
+            <div className="email-detail">
+              <div className="email-detail-header">
+                <h2 className="email-detail-subject">{selectedEmail.subject}</h2>
+                <div className="email-detail-meta">
+                  <div className="sender-info">
                     <img
                       src="/api/placeholder/40/40"
                       alt="Sender"
-                      className="w-10 h-10 rounded-full"
+                      className="sender-avatar"
                     />
-                    <div>
-                      <div className="font-medium">{selectedEmail.from}</div>
-                      <div className="text-sm text-gray-500">to me</div>
+                    <div className="sender-details">
+                      <div className="sender-name">
+                        {selectedEmail.from.split('<')[0].trim()}
+                      </div>
+                      <div className="sender-email">
+                        {selectedEmail.from.match(/<(.+)>/)?.[1] || selectedEmail.from}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm">
-                      {new Date(selectedEmail.date).toLocaleString()}
-                    </span>
-                    <button className="p-1 hover:bg-gray-100 rounded-full">
-                      <MoreVertical className="w-5 h-5" />
+                  <div className="email-actions">
+                    <div className="email-datetime">
+                      <Clock className="datetime-icon" />
+                      <span>{new Date(selectedEmail.date).toLocaleString()}</span>
+                    </div>
+                    <button className="more-actions-button">
+                      <MoreVertical />
                     </button>
                   </div>
                 </div>
               </div>
-              <div className="prose max-w-none">
+              <div className="email-body">
                 {selectedEmail.snippet}
+                {selectedEmail.hasAttachment && (
+                  <div className="attachment-notice">
+                    <Paperclip />
+                    <span>This email has attachments</span>
+                  </div>
+                )}
+              </div>
+              <div className="email-actions-footer">
+                <button 
+                  className="reply-button"
+                  onClick={() => {
+                    setComposeOpen(true);
+                    setComposeTo(selectedEmail.from);
+                    setComposeSubject(`Re: ${selectedEmail.subject}`);
+                    setComposeBody(`\n\n---------- Original message ----------\nFrom: ${selectedEmail.from}\nDate: ${new Date(selectedEmail.date).toLocaleString()}\nSubject: ${selectedEmail.subject}\n\n${selectedEmail.snippet}`);
+                  }}
+                >
+                  Reply
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Compose Modal */}      
       {composeOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg w-[500px] max-w-full max-h-[90vh] overflow-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-medium">Compose Email</h3>
+        <div className="modal-overlay">
+          <div className="compose-modal">
+            <div className="compose-modal-header">
+              <h3>New Message</h3>
               <button 
                 onClick={() => {
                   setComposeOpen(false);
                   resetComposeForm();
                 }}
-                className="p-1 hover:bg-gray-100 rounded-full"
+                className="modal-close"
               >
-                <X className="w-5 h-5" />
+                <X />
               </button>
             </div>
-            <form onSubmit={handleComposeSubmit} className="p-4 space-y-4">
-              <input
-                type="email"
-                placeholder="To"
-                className="w-full p-2 border rounded"
-                value={composeTo}
-                onChange={(e) => setComposeTo(e.target.value)}
-                required
-              />
-              <input
-                type="text"
-                placeholder="Subject"
-                className="w-full p-2 border rounded"
-                value={composeSubject}
-                onChange={(e) => setComposeSubject(e.target.value)}
-                required
-              />
-              <textarea
-                placeholder="Write your message..."
-                className="w-full p-2 border rounded min-h-[200px]"
-                value={composeBody}
-                onChange={(e) => setComposeBody(e.target.value)}
-                required
-              />
-              <div className="flex justify-end gap-2">
+            <form onSubmit={handleComposeSubmit} className="compose-form">
+              <div className="compose-field">
+                <input
+                  type="email"
+                  placeholder="To"
+                  value={composeTo}
+                  onChange={(e) => setComposeTo(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="compose-field">
+                <input
+                  type="text"
+                  placeholder="Subject"
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="compose-field compose-body">
+                <textarea
+                  placeholder="Write your message..."
+                  value={composeBody}
+                  onChange={(e) => setComposeBody(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="compose-actions">
                 <button
                   type="button"
                   onClick={() => {
                     setComposeOpen(false);
                     resetComposeForm();
                   }}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+                  className="cancel-button"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={sendingEmail}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="send-button"
                 >
                   {sendingEmail ? 'Sending...' : 'Send'}
                 </button>
@@ -347,6 +406,15 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       )}
     </div>
   );
+};
+
+GmailManager.propTypes = {
+  activeDevice: PropTypes.shape({
+    email: PropTypes.string.isRequired,
+    name: PropTypes.string,
+    picture: PropTypes.string
+  }).isRequired,
+  adminToken: PropTypes.string.isRequired
 };
 
 export default GmailManager;
