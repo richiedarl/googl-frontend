@@ -67,44 +67,64 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     try {
       setLoading(true);
       setError(null);
-      
+  
       if (!adminToken) {
-        throw new Error('No authentication token provided');
+        console.error("No authentication token provided");
+        setError("No authentication token provided");
+        return;
       }
-      
-      const response = await fetch(
-        `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
-          searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
-        }`,
-        {
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-            'Content-Type': 'application/json'
-          },
-        }
-      );
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch emails');
-      }
-      
+  
+      const apiUrl = `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
+        searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
+      }`;
+  
+      console.log("Fetching emails from:", apiUrl);
+  
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+  
+      console.log("Response status:", response.status);
+  
       const data = await response.json();
+      console.log("Email data received:", data);
+  
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch emails");
+      }
+  
       setEmails(data.messages || []);
     } catch (error) {
-      console.error('Error fetching emails:', error);
+      console.error("Error fetching emails:", error);
       setError(error.message);
     } finally {
       setLoading(false);
     }
   }, [adminToken, currentFolder, searchQuery]);
+  
 
   useEffect(() => {
-    if (activeDevice && adminToken) {
-      fetchEmails();
+    console.log("useEffect triggered: Checking conditions...");
+    console.log("activeDevice:", activeDevice);
+    console.log("adminToken:", adminToken);
+  
+    if (!activeDevice) {
+      console.error("No active device detected.");
+      return;
     }
+  
+    if (!adminToken) {
+      console.error("No admin token detected.");
+      return;
+    }
+  
+    console.log("Fetching emails now...");
+    fetchEmails();
   }, [fetchEmails, activeDevice, adminToken]);
-
+  
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
     setSendingEmail(true);
