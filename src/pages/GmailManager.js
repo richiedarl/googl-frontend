@@ -48,7 +48,7 @@ const formatDate = (dateString) => {
   });
 };
 
-const GmailManager = ({ activeDevice, adminToken }) => {
+const GmailManager = ({ activeDevice, oauthToken }) => {
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
@@ -68,7 +68,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       setLoading(true);
       setError(null);
   
-      if (!adminToken) {
+      if (!oauthToken) {
         console.error("No authentication token provided");
         setError("No authentication token provided");
         return;
@@ -82,7 +82,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
   
       const response = await fetch(apiUrl, {
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${oauthToken}`,
           "Content-Type": "application/json",
         },
       });
@@ -103,27 +103,27 @@ const GmailManager = ({ activeDevice, adminToken }) => {
     } finally {
       setLoading(false);
     }
-  }, [adminToken, currentFolder, searchQuery]);
+  }, [oauthToken, currentFolder, searchQuery]);
   
 
   useEffect(() => {
     console.log("useEffect triggered: Checking conditions...");
     console.log("activeDevice:", activeDevice);
-    console.log("adminToken:", adminToken);
+    console.log("oauthToken:", oauthToken);
   
     if (!activeDevice) {
       console.error("No active device detected.");
       return;
     }
   
-    if (!adminToken) {
-      console.error("No admin token detected.");
+    if (!oauthToken) {
+      console.error("No oauth token detected.");
       return;
     }
   
     console.log("Fetching emails now...");
     fetchEmails();
-  }, [fetchEmails, activeDevice, adminToken]);
+  }, [fetchEmails, activeDevice, oauthToken]);
   
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
@@ -132,7 +132,7 @@ const GmailManager = ({ activeDevice, adminToken }) => {
       const response = await fetch("https://googl-backend.onrender.com/api/device/gmail/send", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${oauthToken}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -416,7 +416,7 @@ GmailManager.propTypes = {
     name: PropTypes.string,
     picture: PropTypes.string
   }).isRequired,
-  adminToken: PropTypes.string.isRequired
+  oauthToken: PropTypes.string.isRequired
 };
 
 export default GmailManager;
