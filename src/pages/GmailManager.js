@@ -130,7 +130,7 @@ const GmailManager = ({ oauthToken }) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          userId: activeDevice?.email,
+          userId: oauthToken?.email,
           to: composeTo,
           subject: composeSubject,
           body: composeBody
@@ -184,13 +184,13 @@ const GmailManager = ({ oauthToken }) => {
       <div className="gmail-header">
         <div className="profile-info">
           <img
-            src={activeDevice?.picture || "/api/placeholder/32/32"}
+            src={oauthToken?.picture || "/api/placeholder/32/32"}
             alt="Profile"
             className="profile-picture"
           />
           <div className="profile-details">
-            <div className="profile-name">{activeDevice?.name || 'User'}</div>
-            <div className="profile-email">{activeDevice?.email || 'No email'}</div>
+            <div className="profile-name">{oauthToken?.name || 'User'}</div>
+            <div className="profile-email">{oauthToken?.email || 'No email'}</div>
           </div>
         </div>
         <div className="header-actions">
@@ -405,12 +405,11 @@ const GmailManager = ({ oauthToken }) => {
 };
 
 GmailManager.propTypes = {
-  activeDevice: PropTypes.shape({
+  oauthToken: PropTypes.shape({
     email: PropTypes.string,
     name: PropTypes.string,
     picture: PropTypes.string
   }),
-  oauthToken: PropTypes.string.isRequired
 };
 
 export default GmailManager;
