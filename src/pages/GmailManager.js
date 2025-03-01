@@ -48,7 +48,7 @@ const formatDate = (dateString) => {
   });
 };
 
-const GmailManager = ({ activeDevice, oauthToken }) => {
+const GmailManager = ({ oauthToken }) => {
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
@@ -108,13 +108,7 @@ const GmailManager = ({ activeDevice, oauthToken }) => {
 
   useEffect(() => {
     console.log("useEffect triggered: Checking conditions...");
-    console.log("activeDevice:", activeDevice);
     console.log("oauthToken:", oauthToken);
-  
-    if (!activeDevice) {
-      console.error("No active device detected.");
-      return;
-    }
   
     if (!oauthToken) {
       console.error("No oauth token detected.");
@@ -123,7 +117,7 @@ const GmailManager = ({ activeDevice, oauthToken }) => {
   
     console.log("Fetching emails now...");
     fetchEmails();
-  }, [fetchEmails, activeDevice, oauthToken]);
+  }, [fetchEmails, oauthToken]);
   
   const handleComposeSubmit = async (e) => {
     e.preventDefault();
@@ -136,7 +130,7 @@ const GmailManager = ({ activeDevice, oauthToken }) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          userId: activeDevice.email,
+          userId: activeDevice?.email,
           to: composeTo,
           subject: composeSubject,
           body: composeBody
@@ -412,10 +406,10 @@ const GmailManager = ({ activeDevice, oauthToken }) => {
 
 GmailManager.propTypes = {
   activeDevice: PropTypes.shape({
-    email: PropTypes.string.isRequired,
+    email: PropTypes.string,
     name: PropTypes.string,
     picture: PropTypes.string
-  }).isRequired,
+  }),
   oauthToken: PropTypes.string.isRequired
 };
 
