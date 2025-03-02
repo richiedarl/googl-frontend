@@ -15,31 +15,28 @@ const GmailManagerWrapper = () => {
   useEffect(() => {
     // Parse query parameters from the URL
     const searchParams = new URLSearchParams(location.search);
-    const tokenFromStorage = localStorage.getItem("deviceOAuthToken");
     
-    // Try to get token from URL query parameter if it exists
+    // Get token from URL (backend now includes it)
     const tokenFromUrl = searchParams.get("token");
-    
+    const tokenFromStorage = localStorage.getItem("deviceOAuthToken");
+
     if (tokenFromUrl) {
-      // If token is in URL, save it to localStorage for future use
       localStorage.setItem("deviceOAuthToken", tokenFromUrl);
       setOauthToken(tokenFromUrl);
     } else if (tokenFromStorage) {
-      // Use token from localStorage if available
       setOauthToken(tokenFromStorage);
     } else {
-      // No token available, could redirect to login
       console.error("No OAuth token available");
     }
   }, [location]);
-  
-  // Show loading state while token is being retrieved
+
   if (!oauthToken) {
     return <div>Loading Gmail Manager...</div>;
   }
-  
+
   return <GmailManager oauthToken={oauthToken} />;
 };
+
 
 function App() {
   const [adminToken, setAdminToken] = useState(localStorage.getItem("adminToken"));

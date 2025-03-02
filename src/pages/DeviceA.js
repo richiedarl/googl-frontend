@@ -62,7 +62,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     fetchDevices();
   }, [storedToken, navigate, handleLogout]);
 
-  const loginAsDevice = async (device) => {
+  const loginWithOauth = async (device) => {
     try {
       if (!storedToken) {
         throw new Error("No authentication token found");
@@ -71,7 +71,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
       console.log("Attempting login for device:", device.email);
   
       const response = await axios.post(
-        "https://googl-backend.onrender.com/auth/login-to-device",
+        "https://googl-backend.onrender.com/auth/login-with-oauth",
         { deviceBEmail: device.email },
         {
           headers: {
@@ -128,7 +128,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
                   </div>
                   <button
                     className="login-button"
-                    onClick={() => loginAsDevice(device)}
+                    onClick={() => loginwithOauth(device)}
                   >
                     Access Gmail
                   </button>
