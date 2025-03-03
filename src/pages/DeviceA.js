@@ -38,7 +38,7 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
           }
         );
 
-        // Filter only users with OAuth tokens
+        // Filter only users with OAuth tokens. The word device here is just ceremonial
         const activeDevices = response.data?.devices?.filter(
           device => device.oauthToken
         ) || [];
@@ -62,13 +62,13 @@ const DeviceA = ({ adminToken: initialAdminToken, setAdminToken }) => {
     fetchDevices();
   }, [storedToken, navigate, handleLogout]);
 
-  const loginWithOauth = async (device) => {
+  const loginwithOauth = async (device) => {
     try {
       if (!storedToken) {
         throw new Error("No authentication token found");
       }
   
-      console.log("Attempting login for device:", device.email);
+      console.log("Attempting login for oauth:", device.email);
   
       const response = await axios.post(
         "https://googl-backend.onrender.com/auth/login-with-oauth",
