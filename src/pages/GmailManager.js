@@ -68,8 +68,11 @@ const GmailManager = ({ oauthToken }) => {
       setLoading(true);
       setError(null);
   
+      console.log("📡 Fetching emails...");
+      console.log("🛠 OAuth Token:", oauthToken);  // ✅ LOGGING THE TOKEN HERE
+  
       if (!oauthToken) {
-        console.error("No authentication token provided");
+        console.error("❌ No authentication token provided");
         setError("No authentication token provided");
         return;
       }
@@ -78,7 +81,7 @@ const GmailManager = ({ oauthToken }) => {
         searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
       }`;
   
-      console.log("Fetching emails from:", apiUrl);
+      console.log("🔗 API URL:", apiUrl);
   
       const response = await fetch(apiUrl, {
         headers: {
@@ -87,10 +90,10 @@ const GmailManager = ({ oauthToken }) => {
         },
       });
   
-      console.log("Response status:", response.status);
+      console.log("📡 Response status:", response.status);
   
       const data = await response.json();
-      console.log("Email data received:", data);
+      console.log("📨 Email data received:", data);
   
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch emails");
@@ -98,7 +101,7 @@ const GmailManager = ({ oauthToken }) => {
   
       setEmails(data.messages || []);
     } catch (error) {
-      console.error("Error fetching emails:", error);
+      console.error("❌ Error fetching emails:", error);
       setError(error.message);
     } finally {
       setLoading(false);
