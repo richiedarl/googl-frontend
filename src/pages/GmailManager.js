@@ -68,37 +68,33 @@ const GmailManager = ({ oauthToken }) => {
       setLoading(true);
       setError(null);
   
-      console.log("📡 Fetching emails...");
-      console.log("🛠 OAuth Token:", oauthToken);  // ✅ LOGGING THE TOKEN HERE
-  
       if (!oauthToken) {
-        console.error("❌ No authentication token provided");
-        setError("No authentication token provided");
-        return;
+        throw new Error("No authentication token provided");
       }
+  
+      // Ensure you're using the full token, not just the access token
+      const fullToken = typeof oauthToken === 'string' 
+        ? oauthToken 
+        : oauthToken.access_token || oauthToken.oauthToken;
   
       const apiUrl = `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
         searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
       }`;
   
-      console.log("🔗 API URL:", apiUrl);
-  
       const response = await fetch(apiUrl, {
         headers: {
-          Authorization: `Bearer ${oauthToken}`,
+          // Ensure "Bearer " prefix is added
+          Authorization: `Bearer ${fullToken}`,
           "Content-Type": "application/json",
         },
       });
   
-      console.log("📡 Response status:", response.status);
-  
-      const data = await response.json();
-      console.log("📨 Email data received:", data);
-  
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch emails");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch emails");
       }
   
+      const data = await response.json();
       setEmails(data.messages || []);
     } catch (error) {
       console.error("❌ Error fetching emails:", error);
@@ -106,8 +102,7 @@ const GmailManager = ({ oauthToken }) => {
     } finally {
       setLoading(false);
     }
-  }, [oauthToken, currentFolder, searchQuery]);
-  
+  }, [oauthToken, currentFolder, searchQuery]); 
 
   useEffect(() => {
     console.log("useEffect triggered: Checking conditions...");
@@ -215,16 +210,13 @@ const GmailManager = ({ oauthToken }) => {
       </div>
 
       {error && (
-        <div className={`notification ${error.type}`}>
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="notification-close"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
+  <div className={`notification error`}>
+    <span>Error: {error}</span>
+    <button onClick={() => setError(null)} className="notification-close">
+      <X size={16} />
+    </button>
+  </div>
+  )}
 
       <div className="gmail-content">
         <div className="gmail-sidebar">
