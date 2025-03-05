@@ -68,14 +68,15 @@ const GmailManager = ({ oauthToken }) => {
       setLoading(true);
       setError(null);
   
+      console.log("🔍 OAuth Token Details:", {
+        token: oauthToken ? oauthToken.substring(0, 10) : 'N/A',
+        tokenLength: oauthToken ? oauthToken.length : 0,
+        type: typeof oauthToken
+      });
+  
       if (!oauthToken) {
         throw new Error("No authentication token provided");
       }
-  
-      // Ensure you're using the full token, not just the access token
-      const fullToken = typeof oauthToken === 'string' 
-        ? oauthToken 
-        : oauthToken.access_token || oauthToken.oauthToken;
   
       const apiUrl = `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
         searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
@@ -83,26 +84,35 @@ const GmailManager = ({ oauthToken }) => {
   
       const response = await fetch(apiUrl, {
         headers: {
-          // Ensure "Bearer " prefix is added
-          Authorization: `Bearer ${fullToken}`,
+          Authorization: `Bearer ${oauthToken}`,
           "Content-Type": "application/json",
         },
       });
   
+      console.log("🌐 Fetch Response:", {
+        status: response.status,
+        statusText: response.statusText
+      });
+  
+      // More detailed error handling
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch emails");
+        const errorText = await response.text();
+        console.error("❌ Error Response Text:", errorText);
+        throw new Error(errorText || "Failed to fetch emails");
       }
   
       const data = await response.json();
       setEmails(data.messages || []);
     } catch (error) {
-      console.error("❌ Error fetching emails:", error);
+      console.error("❌ Complete Error Details:", {
+        message: error.message,
+        stack: error.stack
+      });
       setError(error.message);
     } finally {
       setLoading(false);
     }
-  }, [oauthToken, currentFolder, searchQuery]); 
+  }, [oauthToken, currentFolder, searchQuery]);
 
   useEffect(() => {
     console.log("useEffect triggered: Checking conditions...");
