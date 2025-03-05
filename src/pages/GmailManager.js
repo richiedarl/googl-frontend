@@ -119,7 +119,7 @@ const GmailManager = ({ oauthToken }) => {
     console.log("oauthToken:", oauthToken);
   
     if (!oauthToken) {
-      console.error("No oauth token detected or found.");
+      console.error("No oauth token detected.");
       return;
     }
   

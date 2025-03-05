@@ -11,32 +11,27 @@ import GmailManager from "./pages/GmailManager";
 const GmailManagerWrapper = () => {
   const location = useLocation();
   const [oauthToken, setOauthToken] = useState(null);
-
+  
   useEffect(() => {
+    // Parse query parameters from the URL
     const searchParams = new URLSearchParams(location.search);
     
-    // Try multiple sources for the token
+    // Get token from URL (backend now includes it)
     const tokenFromUrl = searchParams.get("token");
     const tokenFromStorage = localStorage.getItem("deviceOAuthToken");
-    
-    console.log("🔍 Token Sources:", {
-      tokenFromUrl: tokenFromUrl ? tokenFromUrl.substring(0, 10) : 'N/A',
-      tokenFromStorage: tokenFromStorage ? tokenFromStorage.substring(0, 10) : 'N/A'
-    });
 
-    // Prioritize URL token, then storage token
-    const finalToken = tokenFromUrl || tokenFromStorage;
-
-    if (finalToken) {
-      localStorage.setItem("deviceOAuthToken", finalToken);
-      setOauthToken(finalToken);
+    if (tokenFromUrl) {
+      localStorage.setItem("deviceOAuthToken", tokenFromUrl);
+      setOauthToken(tokenFromUrl);
+    } else if (tokenFromStorage) {
+      setOauthToken(tokenFromStorage);
     } else {
-      console.error("❌ No OAuth token available");
+      console.error("No OAuth token available");
     }
   }, [location]);
 
   if (!oauthToken) {
-    return <div>Loading Gmail Manager... Please ensure you're logged in.</div>;
+    return <div>Loading Gmail Manager...</div>;
   }
 
   return <GmailManager oauthToken={oauthToken} />;
