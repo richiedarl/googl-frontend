@@ -65,54 +65,48 @@ const GmailManager = ({ oauthToken }) => {
 
   const fetchEmails = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-  
-      console.log("🔍 OAuth Token Details:", {
-        token: oauthToken ? oauthToken.substring(0, 10) : 'N/A',
-        tokenLength: oauthToken ? oauthToken.length : 0,
-        type: typeof oauthToken
-      });
-  
-      if (!oauthToken) {
-        throw new Error("No authentication token provided");
-      }
-  
-      const apiUrl = `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${
-        searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
-      }`;
-  
-      const response = await fetch(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${oauthToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-  
-      console.log("🌐 Fetch Response:", {
-        status: response.status,
-        statusText: response.statusText
-      });
-  
-      // More detailed error handling
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Error Response Text:", errorText);
-        throw new Error(errorText || "Failed to fetch emails");
-      }
-  
-      const data = await response.json();
-      setEmails(data.messages || []);
+        setLoading(true);
+        setError(null);
+
+        if (!oauthToken) {
+            console.error("❌ No OAuth token provided.");
+            setError("Missing OAuth token.");
+            return;
+        }
+
+        const apiUrl = `https://googl-backend.onrender.com/api/device/gmail/messages?folder=${currentFolder}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}`;
+
+        console.log("🔍 Fetching emails from:", apiUrl);
+        console.log("📌 Sending OAuth Token:", oauthToken);
+
+        const response = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${oauthToken}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        console.log("🌐 Fetch Response:", response);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("❌ Error Response Text:", errorText);
+            throw new Error(errorText);
+        }
+
+        const data = await response.json();
+        console.log("✅ Email Data Received:", data);
+
+        setEmails(data.messages || []);
     } catch (error) {
-      console.error("❌ Complete Error Details:", {
-        message: error.message,
-        stack: error.stack
-      });
-      setError(error.message);
+        console.error("❌ Complete Error Details:", error);
+        setError(error.message);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  }, [oauthToken, currentFolder, searchQuery]);
+}, [oauthToken, currentFolder, searchQuery]);
+
 
   useEffect(() => {
     console.log("useEffect triggered: Checking conditions...");

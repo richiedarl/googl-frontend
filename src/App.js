@@ -11,22 +11,21 @@ import GmailManager from "./pages/GmailManager";
 const GmailManagerWrapper = () => {
   const location = useLocation();
   const [oauthToken, setOauthToken] = useState(null);
-  
+
   useEffect(() => {
-    // Parse query parameters from the URL
     const searchParams = new URLSearchParams(location.search);
-    
-    // Get token from URL (backend now includes it)
-    const tokenFromUrl = searchParams.get("token");
     const tokenFromStorage = localStorage.getItem("deviceOAuthToken");
+    const tokenFromUrl = searchParams.get("token");
 
     if (tokenFromUrl) {
       localStorage.setItem("deviceOAuthToken", tokenFromUrl);
       setOauthToken(tokenFromUrl);
+      console.log("✅ OAuth Token Set from URL:", tokenFromUrl);
     } else if (tokenFromStorage) {
       setOauthToken(tokenFromStorage);
+      console.log("✅ OAuth Token Set from Storage:", tokenFromStorage);
     } else {
-      console.error("No OAuth token available");
+      console.error("❌ No OAuth token available.");
     }
   }, [location]);
 
